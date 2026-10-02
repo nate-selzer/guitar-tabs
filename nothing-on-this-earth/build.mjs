@@ -40,15 +40,15 @@ const chordDef = n => `\\chord (${q(n)} ${[...shapes[n].frets].reverse().map(f =
 // Outro picking patterns, played twice per bar in 16ths.
 const travisC = ['(3.5 1.2)', '0.3', '2.4', '1.2', '3.6', '0.3', '2.4', '1.2'];
 const pickDdim = ['(0.4 3.2)', '1.3', '0.4', '3.2', '0.4', '1.3', '0.4', '3.2'];
-const pick = (chord, notes, label) => [...notes, ...notes]
-  .map((n, i) => `${n}.16${i === 0 ? ` {ch ${q(chord)}${label ? ` lyrics 0 ${q(label)}` : ''}}` : ''}`)
+const pick = (chord, notes) => [...notes, ...notes]
+  .map((n, i) => `${n}.16${i === 0 ? ` {ch ${q(chord)}}` : ''}`)
   .join(' ');
 
 // [chord|null, quarter beats, verse 1 lyric, verse 2 lyric]
 const bars = [
-  { label: 'VERSES 1 & 2', ac: true, beats: [[null, 1, 'I seen the']] },
+  { ac: true, beats: [[null, 1, 'I seen the']] },
   { repeatStart: true, beats: [['C/G', 2, '1. plague of', '2. sweetest thing'], ['Cmaj7/G', 2, 'locusts, the', "that I've"]] },
-  { beats: [['Ddim7', 2, 'plague of', 'ever'], ['C (barre)', 2, "lice, an'", 'seen']] },
+  { beats: [['Ddim7', 2, 'plague of', 'ever'], ['C (barre)', 2, "lice, an", 'seen']] },
   { beats: [['C (barre)', 1, 'ocean', 'A photo-'], ['C (barre)', 1, 'split right', 'cake, for'], ['Cmaj7', 1, 'down the', 'goodness'], ['C7', 1, 'middle', 'sake']] },
   { beats: [['Am6', 2, "Ain't that", 'Devotion iced in'], ['Am6/F#', 2, 'nice, oh honey', 'green, oh, honey']] },
   { beats: [['F', 2, "Nothin' on this", 'nothing on this'], ['F/G', 2, 'earth could make me', 'earth can make me']] },
@@ -57,7 +57,7 @@ const bars = [
   { ending: 1, beats: [['C/G', 4, 'smile']] },
   { ending: 1, repeatEnd: 2, beats: [['C/G', 2], ['C/G', 2, "Well it's the"]] },
   { ending: 2, beats: [['C/G', 3, '', 'smile'], { raw: '3.5.8 2.5.8' }] },
-  { label: 'INTERLUDE', beats: [['Am6', 2, 'ooh'], ['Am6/F#', 2]] },
+  { beats: [['Am6', 2, 'ooh'], ['Am6/F#', 2]] },
   { beats: [['Am6', 2, 'ooh'], ['Am6/F#', 2]] },
   { beats: [['F', 2, 'ooh'], ['Em7', 2]] },
   { beats: [['C', 2, 'ooh'], ['Cadd9', 2]] },
@@ -66,7 +66,7 @@ const bars = [
   { beats: [['F', 2, 'ooh'], ['Em7', 2]] },
   { beats: [['F', 2], ['A♭dim', 2]] },
   { beats: [['C/G', 3], ['C/G', 1, 'I like my']] },
-  { label: 'VERSE 3', beats: [['C/G', 2, 'toast with'], ['Cmaj7/G', 2, 'jam, love, my']] },
+  { beats: [['C/G', 2, 'toast with'], ['Cmaj7/G', 2, 'jam, love, my']] },
   { beats: [['Ddim7', 2, 'coffee'], ['C (barre)', 2, 'mild. My']] },
   { beats: [['C (barre)', 1, 'troubles'], ['C (barre)', 1, 'stacked like'], ['Cmaj7', 1, 'dishes'], ['C7', 1, 'in a']] },
   { beats: [['Am6', 2, 'crooked'], ['Am6/F#', 2, 'pile, and']] },
@@ -76,7 +76,7 @@ const bars = [
   { beats: [['C', 1, 'smile,'], ['Gadd4/B', 1, 'I'], ['Am6/F#', 1, 'told you'], ['Am6/F#', 1]] },
   { beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
   { beats: [['C/G', 4, 'smile']] },
-  { beats: [{ raw: pick('C/G', travisC, 'OUTRO (fingerpicked)') }] },
+  { beats: [{ raw: pick('C/G', travisC) }] },
   { beats: [{ raw: pick('Ddim', pickDdim) }] },
   { beats: [{ raw: pick('C/G', travisC) }] },
   { beats: [{ raw: pick('Ddim', pickDdim) }] },
@@ -84,27 +84,26 @@ const bars = [
 ];
 
 // Lyric line 0 holds section names so they stack above the verse lines instead of overlapping them.
-const lyrics = (lines, label) => [label, ...lines].map((t, i) => (t ? `lyrics ${i} ${q(t)}` : '')).filter(Boolean).join(' ');
+const lyrics = lines => lines.map((t, i) => (t ? `lyrics ${i} ${q(t)}` : '')).filter(Boolean).join(' ');
 
 // Boom-chuck in eighths: bass note, then the chord without its bass strings.
-const renderBar = ({ beats, label, endLabel }) => {
+const renderBar = ({ beats }) => {
   let alt = 0;
   let prev = null;
   const out = beats.flatMap(entry => {
     if (entry.raw) return [entry.raw];
     const [c, quarters, ...lines] = entry;
-    if (!c) return [`r.4 {${lyrics(lines, label)}}`];
+    if (!c) return [`r.4 {${lyrics(lines)}}`];
     const out = [];
     for (let k = 0; k < quarters; k++) {
       const strs = bassStrings(c);
       const s = strs[alt++ % strs.length];
-      const fx = k === 0 ? [c !== prev && `ch ${q(c)}`, lyrics(lines, prev === null ? label : undefined)].filter(Boolean).join(' ') : '';
+      const fx = k === 0 ? [c !== prev && `ch ${q(c)}`, lyrics(lines)].filter(Boolean).join(' ') : '';
       out.push(`${note(c, s)}.8${fx ? ` {${fx}}` : ''}`, `${chuck(c)}.8`);
     }
     prev = c;
     return out;
   });
-  if (endLabel) out[out.length - 1] += ` {txt ${q(endLabel)}}`;
   return out.join(' ');
 };
 
@@ -137,7 +136,7 @@ fs.writeFileSync(path.join(here, 'Nothing on This Earth Can Make Me Smile.gp'), 
 const sheet = [
   ['Verse 1', [
     [[null, 'I seen the '], ['C/G', 'plague of '], ['Cmaj7/G', 'locusts, the']],
-    [['Ddim7', 'plague of '], ['C (barre)', "lice, an'"]],
+    [['Ddim7', 'plague of '], ['C (barre)', "lice, an"]],
     [['C (barre)', 'ocean split right '], ['Cmaj7', 'down the '], ['C7', 'middle']],
     [['Am6', "Ain't that "], ['Am6/F#', 'nice, oh honey']],
     [['F', "Nothin' on this "], ['F/G', 'earth could make me']],
