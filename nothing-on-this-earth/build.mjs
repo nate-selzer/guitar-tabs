@@ -14,9 +14,9 @@ const shapes = {
   'Cmaj7':     { frets: [null,3,5,4,5,null] },
   'C7':        { frets: [null,3,5,3,5,null] },
   'Am6':       { frets: [null,0,4,2,1,null] },
-  'Am6/F#':    { frets: [2,null,4,2,1,null] },
-  'F':         { frets: [1,null,3,2,1,null] },
-  'F/G':       { frets: [3,null,3,2,1,null] },
+  'Am6/F#':    { frets: [2,null,4,2,1,null], thumb: true },
+  'F':         { frets: [1,null,3,2,1,null], thumb: true },
+  'F/G':       { frets: [3,null,3,2,1,null], thumb: true },
   'C':         { frets: [null,3,2,0,1,null] },
   'Gadd4/B':   { frets: [null,2,0,0,1,null] },
   'Em7':       { frets: [0,null,2,0,3,null] },
@@ -195,14 +195,16 @@ const renderLine = line => {
 };
 
 const diagram = name => {
-  const { frets } = shapes[name];
+  const { frets, thumb } = shapes[name];
   const fretted = frets.filter(f => f);
   const first = Math.max(...fretted) > 4 ? Math.min(...fretted) : 1;
   const x = i => 14 + i * 10;
   const marks = frets.map((f, i) => {
     if (f === null) return `<text x="${x(i)}" y="9" text-anchor="middle" font-size="9">×</text>`;
     if (f === 0) return `<circle cx="${x(i)}" cy="6" r="3" fill="none" stroke="currentColor"/>`;
-    return `<circle cx="${x(i)}" cy="${12 + (f - first + 0.5) * 12}" r="3.6" fill="currentColor"/>`;
+    const cy = 12 + (f - first + 0.5) * 12;
+    if (thumb && i === 0) return `<circle cx="${x(i)}" cy="${cy}" r="4.6" fill="currentColor"/><text x="${x(i)}" y="${cy + 2.6}" text-anchor="middle" font-size="7" font-weight="700" style="fill: var(--thumb-text, #fff)">T</text>`;
+    return `<circle cx="${x(i)}" cy="${cy}" r="3.6" fill="currentColor"/>`;
   });
   const lines = [
     ...[0, 1, 2, 3, 4, 5].map(i => `<line x1="${x(i)}" y1="12" x2="${x(i)}" y2="72" stroke="currentColor" stroke-width=".8"/>`),
