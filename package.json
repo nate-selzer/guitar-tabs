@@ -1,0 +1,11 @@
+{
+  "name": "guitar-tabs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node nothing-on-this-earth/build.mjs"
+  },
+  "dependencies": {
+    "@coderline/alphatab": "1.8.4"
+  }
+}
