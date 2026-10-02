@@ -138,10 +138,97 @@ fs.writeFileSync(path.join(here, 'Nothing on This Earth Can Make Me Smile.gp'), 
 const artifactOut = process.argv[process.argv.indexOf('--artifact') + 1];
 const page = fs.readFileSync(path.join(here, 'template.html'), 'utf8')
   .replace('__TEX__', tex)
+  .replace('__NAV__', process.argv.includes('--artifact') ? '' : '<nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>')
   .replaceAll('__VENDOR__', process.argv.includes('--artifact') ? '' : '../vendor/alphatab/');
 if (process.argv.includes('--artifact')) {
   fs.writeFileSync(artifactOut, page);
 } else {
   const head = '<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n';
   fs.writeFileSync(path.join(here, 'index.html'), head + page);
+}
+
+// Chord sheet: each line is [chord|null, lyric] segments; a plain string is a note.
+const sheet = [
+  ['Verse 1', [
+    [[null, 'I seen the '], ['C/G', 'plague of '], ['Cmaj7/G', 'locusts, the']],
+    [['Ddim7', 'plague of '], ['C (barre)', "lice, an'"]],
+    [['C (barre)', 'ocean split right '], ['Cmaj7', 'down the '], ['C7', 'middle']],
+    [['Am6', "Ain't that nice, "], ['Am6/F#', 'oh honey']],
+    [['F', "Nothin' on this earth "], ['F/G', 'could make me']],
+    [['C', 'smile, '], ['Gadd4/B', 'I told '], ['Am6/F#', 'ya']],
+    [['F', "Nothin' on this earth "], ['F/G', 'could make me']],
+    [['C/G', 'smile']],
+  ]],
+  ['Verse 2', [
+    [[null, "Well it's the "], ['C/G', 'sweetest thing '], ['Cmaj7/G', "that I've"]],
+    [['Ddim7', 'ever '], ['C (barre)', 'seen']],
+    [['C (barre)', 'A photo-cake, for '], ['Cmaj7', 'goodness '], ['C7', 'sake']],
+    [['Am6', 'Devotion iced in green, '], ['Am6/F#', 'oh, honey']],
+    [['F', 'nothing on this earth '], ['F/G', 'can make me']],
+    [['C', 'smile, '], ['Gadd4/B', 'I told '], ['Am6/F#', 'you']],
+    [['F', 'nothing on this earth '], ['F/G', 'can make me']],
+    [['C/G', 'smile']],
+    '(bass walks C–B into the interlude)',
+  ]],
+  ['Interlude', [
+    [['Am6', 'ooh '], ['Am6/F#', ''], ['Am6', 'ooh '], ['Am6/F#', '']],
+    [['F', 'ooh '], ['Em7', ''], ['C', 'ooh '], ['Cadd9', '']],
+    [['Am6', 'ooh '], ['Am6/F#', ''], ['Am6', 'ooh '], ['Am6/F#', '']],
+    [['F', 'ooh '], ['Em7', ''], ['F', ''], ['A♭dim', '']],
+    [['C/G', '']],
+  ]],
+  ['Verse 3', [
+    [[null, 'I like my '], ['C/G', 'toast with '], ['Cmaj7/G', 'jam, love, my']],
+    [['Ddim7', 'coffee '], ['C (barre)', 'mild. My']],
+    [['C (barre)', 'troubles stacked like '], ['Cmaj7', 'dishes '], ['C7', 'in a']],
+    [['Am6', 'crooked pile, '], ['Am6/F#', 'and']],
+    [['F', 'nothing on this earth '], ['F/G', 'can make me']],
+    [['C', 'smile, '], ['Gadd4/B', 'no, '], ['Am6/F#', 'no']],
+    [['F', 'nothing on this earth '], ['F/G', 'can make me']],
+    [['C', 'smile, '], ['Gadd4/B', 'I told '], ['Am6/F#', 'you']],
+    [['F', 'nothing on this earth '], ['F/G', 'can make me']],
+    [['C/G', 'smile']],
+  ]],
+  ['Outro', [
+    [['C/G', ''], ['Ddim', ''], ['C/G', ''], ['Ddim', ''], ['C/G', '']],
+    '(fingerpicked in 16ths)',
+  ]],
+];
+
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const renderLine = line => {
+  if (typeof line === 'string') return `<i>${esc(line)}</i>`;
+  let chords = '';
+  let lyric = '';
+  for (const [c, t] of line) {
+    const width = Math.max(t.length, c ? c.length + 1 : 0);
+    chords += c ? `<b>${esc(c)}</b>${' '.repeat(width - c.length)}` : ' '.repeat(width);
+    lyric += t.padEnd(width);
+  }
+  return [chords.trimEnd(), esc(lyric.trimEnd())].filter(Boolean).join('\n');
+};
+
+const diagram = name => {
+  const { frets } = shapes[name];
+  const fretted = frets.filter(f => f);
+  const first = Math.max(...fretted) > 4 ? Math.min(...fretted) : 1;
+  const x = i => 14 + i * 10;
+  const marks = frets.map((f, i) => {
+    if (f === null) return `<text x="${x(i)}" y="9" text-anchor="middle" font-size="9">×</text>`;
+    if (f === 0) return `<circle cx="${x(i)}" cy="6" r="3" fill="none" stroke="currentColor"/>`;
+    return `<circle cx="${x(i)}" cy="${12 + (f - first + 0.5) * 12}" r="3.6" fill="currentColor"/>`;
+  });
+  const lines = [
+    ...[0, 1, 2, 3, 4, 5].map(i => `<line x1="${x(i)}" y1="12" x2="${x(i)}" y2="72" stroke="currentColor" stroke-width=".8"/>`),
+    ...[0, 1, 2, 3, 4, 5].map(j => `<line x1="14" y1="${12 + j * 12}" x2="64" y2="${12 + j * 12}" stroke="currentColor" stroke-width="${j === 0 && first === 1 ? 3 : .8}"/>`),
+  ];
+  const label = first > 1 ? `<text x="7" y="${12 + 0.5 * 12 + 3}" text-anchor="middle" font-size="9" fill="currentColor">${first}</text>` : '';
+  return `<figure><figcaption>${esc(name)}</figcaption><svg viewBox="0 0 72 76" role="img" aria-label="${esc(name)}: ${frets.map(f => f ?? 'x').join('')}" fill="currentColor" font-family="ui-monospace, Menlo, monospace">${lines.join('')}${marks.join('')}${label}</svg></figure>`;
+};
+
+if (!process.argv.includes('--artifact')) {
+  const chordsPage = fs.readFileSync(path.join(here, 'chords.template.html'), 'utf8')
+    .replace('__DIAGRAMS__', Object.keys(shapes).map(diagram).join(''))
+    .replace('__SHEET__', sheet.map(([name, lines]) => `<section><h2>[${esc(name)}]</h2><pre>${lines.map(renderLine).join('\n')}</pre></section>`).join(''));
+  fs.writeFileSync(path.join(here, 'chords.html'), chordsPage);
 }

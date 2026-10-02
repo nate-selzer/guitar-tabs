@@ -13,7 +13,8 @@
   main { max-width: 680px; margin: 0 auto; padding: 40px 16px; }
   h1 { font: 700 36px/1.1 "Zilla Slab", Rockwell, serif; margin: 0 0 24px; }
   ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-  li { border-bottom: 1px solid var(--line); }
+  li { border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; }
+  a.alt { color: var(--accent); font-weight: 600; flex: none; }
   a { display: block; padding: 14px 0; color: var(--fg); text-decoration: none; }
   a:hover b, a:focus-visible b { color: var(--accent); }
   span { color: var(--muted); }
@@ -21,6 +22,6 @@
 <main>
   <h1>Guitar Tabs</h1>
   <ul>
-    <li><a href="nothing-on-this-earth/"><b>Nothing on This Earth Can Make Me Smile</b> <span>· Dougie Poole · capo 2</span></a></li>
+    <li><a href="nothing-on-this-earth/"><b>Nothing on This Earth Can Make Me Smile</b> <span>· Dougie Poole · capo 2</span></a><a class="alt" href="nothing-on-this-earth/chords.html">Chords</a></li>
   </ul>
 </main>
