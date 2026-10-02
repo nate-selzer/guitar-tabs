@@ -1,4 +1,8 @@
-<title>Nothing on This Earth</title>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Public+Sans:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
@@ -58,20 +62,16 @@
 
 <div class="wrap">
   <header>
-    <h1>Nothing on This Earth Can Make Me Smile</h1>
-    <div class="by">Dougie Poole · chord tab</div>
+    <h1>__TITLE__</h1>
+    <div class="by">__ARTIST__ · tab</div>
     <div class="facts">
-      <span class="fact">Capo <b>2</b></span>
-      <span class="fact">Frets relative to capo</span>
-      <span class="fact">Sounds in <b>D</b></span>
-      <span class="fact"><b>4/4</b></span>
-      <span class="fact">♩ = <b>80</b></span>
+      __FACTS__
     </div>
   </header>
 
-  <p class="note"><b>Thumb over the neck.</b> F, F/G, Am6/F#, Am/F# and A♭dim fret the low E string with your thumb wrapped over the top of the neck (marked <b>T</b> in the chord boxes). Your fingers then handle the D, G and B strings. The shapes look impossible as normal fingerings, but they're right.</p>
+  __NOTE__
 
-  __NAV__
+  <nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>
 
   <div class="bar">
     <button id="play" class="primary" disabled>Loading…</button>
@@ -93,7 +93,7 @@
 </div>
 
 <script type="text/plain" id="tex">__TEX__</script>
-<script src="__VENDOR__alphaTab.min.js"></script>
+<script src="../vendor/alphatab/alphaTab.min.js"></script>
 <script>
   const el = document.getElementById('tab');
   const playBtn = document.getElementById('play');
@@ -103,8 +103,8 @@
 
   const api = new alphaTab.AlphaTabApi(el, {
     core: {
-      fontDirectory: new URL('__VENDOR__font/', location.href).href,
-      scriptFile: new URL('__VENDOR__alphaTab.min.js', location.href).href,
+      fontDirectory: new URL('../vendor/alphatab/font/', location.href).href,
+      scriptFile: new URL('../vendor/alphatab/alphaTab.min.js', location.href).href,
       enableLazyLoading: false,
       useWorkers: false,
     },
@@ -121,7 +121,7 @@
       elements: {
         scoreTitle: false, scoreArtist: false, scoreSubTitle: false,
         guitarTuning: false, trackNames: false, effectDynamics: false, effectTempo: false,
-        effectCapo: false, chordDiagrams: false, effectChordNames: false, barNumber: false,
+        effectCapo: false, effectLetRing: false, chordDiagrams: false, effectChordNames: false, barNumber: false,
       },
     },
     player: {
@@ -132,10 +132,21 @@
     },
   });
 
-  api.tex(document.getElementById('tex').textContent.trim());
+  // Playback uses the strummed (brushed) score; the drawn copy drops the strum markers so the tab has no arrows.
+  const tex = document.getElementById('tex').textContent.trim();
+  const strummed = new alphaTab.midi.MidiFile();
+  const importer = new alphaTab.importer.AlphaTexImporter();
+  importer.initFromString(tex, api.settings);
+  new alphaTab.midi.MidiFileGenerator(importer.readScore(), api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed)).generate();
+  api.scoreLoaded.on(score => {
+    for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
+      for (const voice of bar.voices) for (const beat of voice.beats) beat.brushType = 0;
+  });
+  api.midiLoad.on(midi => { midi.tracks = strummed.tracks; });
+  api.tex(tex);
 
   status.textContent = 'Loading sounds…';
-  fetch('__VENDOR__soundfont/sonivox.sf2.b64.txt')
+  fetch('../vendor/alphatab/soundfont/sonivox.sf2.b64.txt')
     .then(r => r.text())
     .then(b64 => api.loadSoundFont(Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0))))
     .catch(e => { status.textContent = 'Playback unavailable: ' + e.message; });

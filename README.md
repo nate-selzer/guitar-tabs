@@ -2,7 +2,14 @@
 
 Tabs rendered with [alphaTab](https://alphatab.net), hosted at https://nate-selzer.github.io/guitar-tabs/.
 
-Each song folder has a `build.mjs` that generates the alphaTex source (`song.tex`), a Guitar Pro file, the rendered tab (`index.html`, from `template.html`), and a chord sheet (`chords.html`, from `chords.template.html`).
+Each song is a folder with a `song.mjs` data file: title, capo, tempo, chord shapes, the bars (chord, length, lyrics) and the chords-over-lyrics sheet. `build.mjs` turns every song folder into:
+
+- `index.html`: the tab, with playback
+- `chords.html`: the chord sheet
+- `song.tex`: the alphaTex source
+- `<title>.gp`: a Guitar Pro file
+
+Chords a song doesn't define come from the standard shapes in `chords.mjs`, which also checks each chord name against the notes its frets actually play. Page layouts live in `templates/`.
 
 ```sh
 npm install
