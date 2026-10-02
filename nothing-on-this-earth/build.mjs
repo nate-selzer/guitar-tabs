@@ -37,6 +37,13 @@ const firstFret = n => {
 };
 const chordDef = n => `\\chord (${q(n)} ${[...shapes[n].frets].reverse().map(f => f ?? 'x').join(' ')})${firstFret(n)}`;
 
+// Outro picking patterns, played twice per bar in 16ths.
+const travisC = ['(3.5 1.2)', '0.3', '2.4', '1.2', '3.6', '0.3', '2.4', '1.2'];
+const pickDdim = ['(0.4 3.2)', '1.3', '0.4', '3.2', '0.4', '1.3', '0.4', '3.2'];
+const pick = (chord, notes, label) => [...notes, ...notes]
+  .map((n, i) => `${n}.16${i === 0 ? ` {ch ${q(chord)}${label ? ` txt ${q(label)}` : ''}}` : ''}`)
+  .join(' ');
+
 // [chord|null, quarter beats, verse 1 lyric, verse 2 lyric]
 const bars = [
   { section: 'Verses 1 & 2', ac: true, beats: [[null, 1, 'I seen the']] },
@@ -69,10 +76,10 @@ const bars = [
   { beats: [['C', 1, 'smile,'], ['Gadd4/B', 1, 'I told'], ['Am6/F#', 1, 'you'], ['Am6/F#', 1]] },
   { beats: [['F', 2, 'nothing on this earth'], ['F/G', 2, 'can make me']] },
   { beats: [['C/G', 4, 'smile']] },
-  { beats: [{ raw: '(3.5 1.2).8 {ch "C/G" txt "OUTRO (fingerpicked)"} 0.3.8 2.4.8 1.2.8 3.6.8 0.3.8 2.4.8 1.2.8' }] },
-  { beats: [{ raw: '(0.4 3.2).8 {ch "Ddim"} 1.3.8 0.4.8 3.2.8 0.4.8 1.3.8 0.4.8 3.2.8' }] },
-  { beats: [{ raw: '(3.5 1.2).8 {ch "C/G"} 0.3.8 2.4.8 1.2.8 3.6.8 0.3.8 2.4.8 1.2.8' }] },
-  { beats: [{ raw: '(0.4 3.2).8 {ch "Ddim"} 1.3.8 0.4.8 3.2.8 0.4.8 1.3.8 0.4.8 3.2.8' }] },
+  { beats: [{ raw: pick('C/G', travisC, 'OUTRO (fingerpicked)') }] },
+  { beats: [{ raw: pick('Ddim', pickDdim) }] },
+  { beats: [{ raw: pick('C/G', travisC) }] },
+  { beats: [{ raw: pick('Ddim', pickDdim) }] },
   { beats: [{ raw: '(3.5 2.4 0.3 1.2).1 {ch "C/G"}' }] },
 ];
 
