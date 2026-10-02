@@ -41,12 +41,12 @@ const chordDef = n => `\\chord (${q(n)} ${[...shapes[n].frets].reverse().map(f =
 const travisC = ['(3.5 1.2)', '0.3', '2.4', '1.2', '3.6', '0.3', '2.4', '1.2'];
 const pickDdim = ['(0.4 3.2)', '1.3', '0.4', '3.2', '0.4', '1.3', '0.4', '3.2'];
 const pick = (chord, notes, label) => [...notes, ...notes]
-  .map((n, i) => `${n}.16${i === 0 ? ` {ch ${q(chord)}${label ? ` txt ${q(label)}` : ''}}` : ''}`)
+  .map((n, i) => `${n}.16${i === 0 ? ` {ch ${q(chord)}${label ? ` lyrics 0 ${q(label)}` : ''}}` : ''}`)
   .join(' ');
 
 // [chord|null, quarter beats, verse 1 lyric, verse 2 lyric]
 const bars = [
-  { section: 'Verses 1 & 2', ac: true, beats: [[null, 1, 'I seen the']] },
+  { label: 'VERSES 1 & 2', ac: true, beats: [[null, 1, 'I seen the']] },
   { repeatStart: true, beats: [['C/G', 2, '1. plague of', '2. sweetest thing'], ['Cmaj7/G', 2, 'locusts, the', "that I've"]] },
   { beats: [['Ddim7', 2, 'plague of', 'ever'], ['C (barre)', 2, "lice, an'", 'seen']] },
   { beats: [['C (barre)', 1, 'ocean', 'A photo-'], ['C (barre)', 1, 'split right', 'cake, for'], ['Cmaj7', 1, 'down the', 'goodness'], ['C7', 1, 'middle', 'sake']] },
@@ -83,7 +83,8 @@ const bars = [
   { beats: [{ raw: '(3.5 2.4 0.3 1.2).1 {ch "C/G"}' }] },
 ];
 
-const lyrics = lines => lines.map((t, i) => (t ? `lyrics ${i} ${q(t)}` : '')).filter(Boolean).join(' ');
+// Lyric line 0 holds section names so they stack above the verse lines instead of overlapping them.
+const lyrics = (lines, label) => [label, ...lines].map((t, i) => (t ? `lyrics ${i} ${q(t)}` : '')).filter(Boolean).join(' ');
 
 // Boom-chuck in eighths: bass note, then the chord without its bass strings.
 const renderBar = ({ beats, label, endLabel }) => {
@@ -92,14 +93,13 @@ const renderBar = ({ beats, label, endLabel }) => {
   const out = beats.flatMap(entry => {
     if (entry.raw) return [entry.raw];
     const [c, quarters, ...lines] = entry;
-    if (!c) return [`r.4 {${lyrics(lines)}}`];
+    if (!c) return [`r.4 {${lyrics(lines, label)}}`];
     const out = [];
     for (let k = 0; k < quarters; k++) {
       const strs = bassStrings(c);
       const s = strs[alt++ % strs.length];
-      const fx = k === 0 ? [c !== prev && `ch ${q(c)}`, lyrics(lines)].filter(Boolean).join(' ') : '';
-      const lbl = label && prev === null && k === 0 ? ` {txt ${q(label)}}` : '';
-      out.push(`${note(c, s)}.8${fx ? ` {${fx}}` : ''}`, `${chuck(c)}.8${lbl}`);
+      const fx = k === 0 ? [c !== prev && `ch ${q(c)}`, lyrics(lines, prev === null ? label : undefined)].filter(Boolean).join(' ') : '';
+      out.push(`${note(c, s)}.8${fx ? ` {${fx}}` : ''}`, `${chuck(c)}.8`);
     }
     prev = c;
     return out;
@@ -119,7 +119,6 @@ const tex = [
   ...Object.keys(shapes).map(chordDef),
   bars.map((b, i) => [
     i === 0 ? '\\ts (4 4)' : '',
-    b.section ? `\\section ${q(b.section)}` : '',
     b.ac ? '\\ac' : '',
     b.repeatStart ? '\\ro' : '',
     b.ending ? `\\ae (${b.ending})` : '',
@@ -133,19 +132,6 @@ const settings = new alphaTab.Settings();
 const imp = new alphaTab.importer.AlphaTexImporter();
 imp.initFromString(tex, settings);
 fs.writeFileSync(path.join(here, 'Nothing on This Earth Can Make Me Smile.gp'), new alphaTab.exporter.Gp7Exporter().export(imp.readScore(), settings));
-
-// `node build.mjs --artifact <file>` writes a claude.ai artifact body with assets at the root instead of index.html.
-const artifactOut = process.argv[process.argv.indexOf('--artifact') + 1];
-const page = fs.readFileSync(path.join(here, 'template.html'), 'utf8')
-  .replace('__TEX__', tex)
-  .replace('__NAV__', process.argv.includes('--artifact') ? '' : '<nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>')
-  .replaceAll('__VENDOR__', process.argv.includes('--artifact') ? '' : '../vendor/alphatab/');
-if (process.argv.includes('--artifact')) {
-  fs.writeFileSync(artifactOut, page);
-} else {
-  const head = '<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n';
-  fs.writeFileSync(path.join(here, 'index.html'), head + page);
-}
 
 // Chord sheet: each line is [chord|null, lyric] segments; a plain string is a note.
 const sheet = [
@@ -231,4 +217,18 @@ if (!process.argv.includes('--artifact')) {
     .replace('__DIAGRAMS__', Object.keys(shapes).map(diagram).join(''))
     .replace('__SHEET__', sheet.map(([name, lines]) => `<section><h2>[${esc(name)}]</h2><pre>${lines.map(renderLine).join('\n')}</pre></section>`).join(''));
   fs.writeFileSync(path.join(here, 'chords.html'), chordsPage);
+}
+
+// `node build.mjs --artifact <file>` writes a claude.ai artifact body with assets at the root instead of index.html.
+const artifactOut = process.argv[process.argv.indexOf('--artifact') + 1];
+const page = fs.readFileSync(path.join(here, 'template.html'), 'utf8')
+  .replace('__TEX__', tex)
+  .replace('__DIAGRAMS__', () => Object.keys(shapes).map(diagram).join(''))
+  .replace('__NAV__', process.argv.includes('--artifact') ? '' : '<nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>')
+  .replaceAll('__VENDOR__', process.argv.includes('--artifact') ? '' : '../vendor/alphatab/');
+if (process.argv.includes('--artifact')) {
+  fs.writeFileSync(artifactOut, page);
+} else {
+  const head = '<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n';
+  fs.writeFileSync(path.join(here, 'index.html'), head + page);
 }
