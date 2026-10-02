@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Public+Sans:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-  /* Songbook page: header with capo/key facts, a paper sheet holding the tab, player bar, notes below */
+  /* Songbook page: header with capo/key facts, a paper sheet holding the tab, player bar */
   :root {
     --bg: #eef0ec;
     --fg: #1c221f;
@@ -44,10 +44,6 @@
   button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .status { color: var(--muted); font-size: 13px; }
   .sheet { background: var(--paper); border-radius: 6px; box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 0 0 1px var(--line); overflow-x: auto; min-height: 320px; }
-  .notes { display: grid; gap: 4px; max-width: 68ch; }
-  .notes h2 { font: 700 18px var(--display); margin: 0 0 4px; }
-  .notes ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
-  code { font: 500 13px var(--mono); }
   .at-cursor-bar { background: rgb(46 106 88 / .08); }
   body:not(.playing) .at-cursor-bar, body:not(.playing) .at-cursor-beat { visibility: hidden; }
   .at-cursor-beat { background: #2e6a58; width: 3px; }
@@ -81,19 +77,6 @@
 
   <div class="sheet"><div id="tab"></div></div>
 
-  <section class="notes">
-    <h2>Guesses to check</h2>
-    <ul>
-      <li>Boom-chuck in eighth notes: a bass note on each beat, then a D-G-B strum on the "and". C/G and Cmaj7/G alternate C and G in the bass. Every other chord repeats its lowest note.</li>
-      <li>The chord I first called <b>Em6/B</b> is now <code>x2001x</code>. Its notes are B D G C, with no E, so I've labeled it <b>Gadd4/B</b>.</li>
-      <li>The C on "smile, I told ya" is still the open C, since its bass walks down to the B of Gadd4/B. "C (barre)" is the A shape at the 3rd fret.</li>
-      <li>Verse 2 is the second lyric line. "Well it's the" in the 1st ending leads into it. I placed "A photo-cake, for goodness sake" so "cake" and "sake" land on beats 2 and 4, where "split" and "middle" fall in Verse 1.</li>
-      <li>The 2nd ending walks the bass C–B into the interlude's Am6.</li>
-      <li>Verse 3 is written out after the interlude, since it's two bars longer. Its extra "smile, I told you" bar reuses the C · Gadd4/B · Am6/F# changes from "smile, no, no". That part is my guess.</li>
-      <li>The outro picking is my guess. The C bars use Travis picking on the C/G shape, with the thumb on C–E–G–E. The Ddim bars use the open shape <code>xx0131</code> without the high e, so the F drops out. If it still sounds fully diminished on the record, he may be fretting F on the D string (<code>xx313x</code>).</li>
-      <li><code>x3203x</code> has a D but no B♭, so it's labeled <b>Cadd9</b> rather than C9.</li>
-    </ul>
-  </section>
 </div>
 
 <script type="text/plain" id="tex">\title "Nothing on This Earth Can Make Me Smile"
