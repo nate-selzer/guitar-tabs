@@ -21,7 +21,7 @@ const shapes = {
   'Gadd4/B':   { frets: [null,2,0,0,1,null] },
   'Em7':       { frets: [0,null,2,0,3,null] },
   'Cadd9':     { frets: [null,3,2,0,3,null] },
-  'A♭dim':     { frets: [4,null,0,4,3,null] },
+  'A♭dim':     { frets: [4,null,0,4,3,null], thumb: true },
   'Ddim':      { frets: [null,null,0,1,3,null] },
 };
 const q = s => `"${s.replace(/"/g, '\\"')}"`;
