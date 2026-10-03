@@ -119,7 +119,34 @@ async function buildSong(slug) {
   fs.writeFileSync(path.join(dir, 'index.html'), fill('tab.html', f => [...f, `<b>${num}/${den}</b>`, `♩ = <b>${song.tempo}</b>`]).replace('__TEX__', () => tex));
   fs.writeFileSync(path.join(dir, 'chords.html'), fill('chords.html', f => f)
     .replace('__SHEET__', () => song.sheet.map(([name, lines]) => `<section><h2>[${esc(name)}]</h2><pre>${lines.map(renderLine).join('\n')}</pre></section>`).join('')));
+  fs.writeFileSync(path.join(dir, 'chords.txt'), plainSheet(song, shapes));
   return { slug, ...song };
+}
+
+// Plain-text chord sheet for pasting into Ultimate Guitar: a shape legend, then chords over lyrics.
+// Annotations like "(barre)" are dropped from chord lines so UG recognizes the chord names.
+function plainSheet(song, shapes) {
+  const ascii = c => c.replace(/♭/g, 'b').replace(/♯/g, '#');
+  const strip = c => c && ascii(c.replace(/\s*\(.*?\)/, ''));
+  const width = Math.max(...Object.keys(shapes).map(n => n.length)) + 2;
+  return [
+    song.capo ? `Capo: ${song.capo}${['st', 'nd', 'rd'][song.capo - 1] ?? 'th'} fret` : '',
+    song.tuning ? `Tuning: ${song.tuning.map(n => n.replace(/\d/, '')).join(' ')}` : '',
+    song.note ? ascii(song.note).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s*\([^)]*\)/g, '') : '',
+    '',
+    ...Object.entries(shapes).map(([n, { frets, thumb }]) => ascii(n).padEnd(width) + frets.map(f => f ?? 'x').join('') + (thumb ? '  (thumb on low E)' : '')),
+    ...song.sheet.flatMap(([name, lines]) => ['', `[${name}]`, ...lines.map(line => {
+      if (typeof line === 'string') return line;
+      let chords = '';
+      let lyric = '';
+      for (const [c, t] of line.map(([c, t]) => [strip(c), t])) {
+        const w = Math.max(t.length, c ? c.length + 1 : 0);
+        chords += (c ?? '').padEnd(w);
+        lyric += t.padEnd(w);
+      }
+      return [chords.trimEnd(), lyric.trimEnd()].filter(Boolean).join('\n');
+    })]),
+  ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n').trim() + '\n';
 }
 
 // A sheet line is [chord|null, lyric] segments, each chord sitting over the start of its lyric; a plain string is a note.

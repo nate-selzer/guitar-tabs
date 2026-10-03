@@ -1,0 +1,96 @@
+Capo: 2nd fret
+
+Thumb over the neck. F, F/G, Am6/F#, Am/F# and Abdim fret the low E string with your thumb wrapped over the top of the neck. Your fingers then handle the D, G and B strings. The shapes look impossible as normal fingerings, but they're right.
+
+C/G        33201x
+Cmaj7/G    33200x
+Ddim7      x5646x
+C (barre)  x3555x
+Cmaj7      x3545x
+C7         x3535x
+Am6        x0421x
+Am6/F#     2x421x  (thumb on low E)
+F          1x321x  (thumb on low E)
+F/G        3x321x  (thumb on low E)
+C          x3201x
+Gadd4/B    x2001x
+Em7        0x203x
+Cadd9      x3203x
+Am         x0221x
+Am/F#      2x221x  (thumb on low E)
+Abdim      4x043x  (thumb on low E)
+Ddim       xx013x
+
+[Verse 1]
+           C/G       Cmaj7/G
+I seen the plague of locusts, the
+Ddim7     C
+plague of lice, an
+C                 Cmaj7    C7
+ocean split right down the middle
+Am6        Am6/F#
+Ain't that nice, oh honey
+F               F/G
+Nothin' on this earth could make me
+C      Gadd4/B Am6/F#
+smile, I       told ya
+F               F/G
+Nothin' on this earth could make me
+C/G
+smile
+
+[Verse 2]
+              C/G            Cmaj7/G
+Well it's the sweetest thing that I've
+Ddim7 C
+ever  seen
+C                 Cmaj7    C7
+A photo-cake, for goodness sake
+Am6              Am6/F#
+Devotion iced in green, oh, honey
+F               F/G
+nothing on this earth can make me
+C      Gadd4/B Am6/F#
+smile, I       told you
+F               F/G
+nothing on this earth can make me
+C/G
+smile
+(bass walks C–B into the interlude)
+
+[Interlude]
+Am  Am/F# Am  Am/F#
+ooh       ooh
+F   Em7 C   Cadd9
+ooh     ooh
+Am  Am/F# Am  Am/F#
+ooh       ooh
+F   Em7 F Abdim
+ooh
+C/G
+
+[Verse 3]
+          C/G        Cmaj7/G
+I like my toast with jam, love, my
+Ddim7  C
+coffee mild. My
+C                     Cmaj7  C7
+troubles stacked like dishes in a
+Am6     Am6/F#
+crooked pile, and
+F               F/G
+nothing on this earth can make me
+C      Gadd4/B Am6/F#
+smile, no,     no
+F               F/G
+nothing on this earth can make me
+C      Gadd4/B Am6/F#
+smile, I       told you
+F               F/G
+nothing on this earth can make me
+C/G
+smile
+
+[Outro]
+C/G Ddim C/G Ddim C/G
+(fingerpicked in 16ths)
