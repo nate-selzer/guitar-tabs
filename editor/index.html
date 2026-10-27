@@ -106,8 +106,7 @@
     status('');
   });
   let header = '';
-  // Small seeded variations so playback sounds played, not sequenced: notes on the beat (mostly bass) a bit louder,
-  // in-between notes softer, each note's volume and timing nudged slightly, and chord notes spread a few ms apart.
+  // Seeded variations so playback sounds played, not sequenced: beat accents, volume and timing nudges, spread chords.
   function humanize(midi) {
     let seed = 1;
     const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
@@ -143,8 +142,7 @@
       track.events.sort((a, b) => a.tick - b.tick);
     }
   }
-  // Let-ring sustains a note until its string is played again (up to a bar); cap it so chords don't blur together.
-  // The final chord is left to ring out.
+  // Let-ring sustains up to a bar; cap it so chords don't blur, except the final chord.
   function capRing(midi, maxTicks) {
     for (const track of midi.tracks) {
       const open = new Map();
