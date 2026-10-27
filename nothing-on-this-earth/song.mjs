@@ -14,7 +14,24 @@ export default {
   capo: 2,
   key: 'D',
   tempo: 80,
-  pattern: 'boomChuck',
+  pattern: 'pinch',
+  patterns: {
+    // Bass on every beat. Beats 1 and 3: pinch D + B on the "and". Beats 2 and 4: G on the "e", B on the "a".
+    // C7 (end of the "ocean" / "troubles" bars) instead plays G on the "and", D on the "a".
+    pinch: (c, quarters, fx, state, { note, bassStrings }) => {
+      const out = [];
+      for (let k = 0; k < quarters; k++) {
+        const strs = bassStrings(c);
+        const bass = note(c, strs[state.alt++ % strs.length]);
+        const tag = k === 0 && fx ? ` {${fx}}` : '';
+        const [D, G, B] = [note(c, 2), note(c, 3), note(c, 4)];
+        if (c === 'C7') out.push(`${bass}.8${tag}`, `${G}.16`, `${D}.16`);
+        else if ((state.pos + k) % 2 === 0) out.push(`${bass}.8${tag}`, `(${D} ${B}).8`);
+        else out.push(`${bass}.16${tag}`, `${G}.8`, `${B}.16`);
+      }
+      return out;
+    },
+  },
   note: '<b>Thumb over the neck.</b> F, F/G, Am6/F#, Am/F# and A♭dim fret the low E string with your thumb wrapped over the top of the neck (marked <b>T</b> in the chord boxes). Your fingers then handle the D, G and B strings. The shapes look impossible as normal fingerings, but they\'re right.',
   chords: {
     'C/G':       { frets: [3,3,2,0,1,null], bass: [1, 0] },

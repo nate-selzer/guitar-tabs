@@ -46,6 +46,7 @@ async function buildSong(slug) {
   const chordDef = n => `\\chord (${q(n)} ${[...shapes[n].frets].reverse().map(f => f ?? 'x').join(' ')})${firstFret(n)}`;
   const lyrics = lines => lines.map((t, i) => (t ? `lyrics ${i} ${q(t)}` : '')).filter(Boolean).join(' ');
 
+  // Songs can add their own patterns: (chord, quarters, fx, state, { note, bassStrings, shapes }) => alphaTex beats.
   const patterns = {
     // One downstroke per chord, held for its length.
     strum: (c, quarters, fx) => [`${strings(c)}${DURATIONS[quarters]} {bd${fx ? ` ${fx}` : ''}}`],
@@ -59,18 +60,22 @@ async function buildSong(slug) {
       }
       return out;
     },
+    ...song.patterns,
   };
 
   const renderBar = bar => {
-    const state = { alt: 0 };
+    // pos: quarter-note position in the bar where the current chord starts.
+    const state = { alt: 0, pos: 0 };
     let prev = null;
     return bar.beats.flatMap(entry => {
       if (entry.raw) return [entry.raw];
       const [c, quarters, ...lines] = entry;
-      if (!c) return [`r${DURATIONS[quarters]} {${lyrics(lines)}}`];
+      if (!c) return (state.pos += quarters, [`r${DURATIONS[quarters]} {${lyrics(lines)}}`]);
       const fx = [c !== prev && `ch ${q(c)}`, lyrics(lines)].filter(Boolean).join(' ');
       prev = c;
-      return patterns[bar.pattern ?? song.pattern ?? 'strum'](c, quarters, fx, state);
+      const out = patterns[bar.pattern ?? song.pattern ?? 'strum'](c, quarters, fx, state, { note, bassStrings, shapes });
+      state.pos += quarters;
+      return out;
     }).join(' ');
   };
 
