@@ -16,7 +16,7 @@ export default {
   tempo: 80,
   pattern: 'pinch',
   patterns: {
-    // Beats 1/3 pinch D+B on the "and"; beats 2/4 play G on the "e", B on the "a"; C7 plays G, D on the "and", "a".
+    // Beats 1/3 pinch D+B on the "and"; beats 2/4 play G, D, B on the "e", "and", "a"; C7 plays G, D on the "and", "a".
     pinch: (c, quarters, fx, state, { note, bassStrings }) => {
       const out = [];
       for (let k = 0; k < quarters; k++) {
@@ -26,7 +26,7 @@ export default {
         const [D, G, B] = [note(c, 2), note(c, 3), note(c, 4)];
         if (c === 'C7') out.push(`${bass}.8${tag}`, `${G}.16`, `${D}.16`);
         else if ((state.pos + k) % 2 === 0) out.push(`${bass}.8${tag}`, `(${D} ${B}).8`);
-        else out.push(`${bass}.16${tag}`, `${G}.8`, `${B}.16`);
+        else out.push(`${bass}.16${tag}`, `${G}.16`, `${D}.16`, `${B}.16`);
       }
       return out;
     },
