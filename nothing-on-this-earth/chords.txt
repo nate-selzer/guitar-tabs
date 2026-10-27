@@ -21,6 +21,11 @@ Am/F#        2x221x  (thumb on low E)
 Abdim        4x043x  (thumb on low E)
 Cmaj7 (end)  x35057
 
+[Intro]
+C/G Cmaj7/G Ddim7 C Cmaj7 C7
+Am6 Am6/F# F F/G C Gadd4/B Am6/F# F F/G C/G
+(F bars: variation 2, with the high-e fill)
+
 [Verse 1]
            C/G       Cmaj7/G
 I seen the plague of locusts, the
@@ -38,6 +43,11 @@ F               F/G
 Nothin' on this earth could make me
 C/G
 smile
+(one extra bar of C/G)
+
+[Slide guitar interlude]
+C/G Cmaj7/G Ddim7 C Cmaj7 C7
+Am6 Am6/F# F F/G C Gadd4/B Am6/F# F F/G C/G
 
 [Verse 2]
               C/G            Cmaj7/G
@@ -63,11 +73,17 @@ Am  Am/F# Am  Am/F#
 ooh       ooh
 F   Em7 C   Cadd9
 ooh     ooh
+
+[Interlude pt 2]
 Am  Am/F# Am  Am/F#
 ooh       ooh
 F   Em7 F Abdim
 ooh
 C/G
+
+[Slide guitar interlude (with laughter)]
+C/G Cmaj7/G Ddim7 C Cmaj7 C7
+Am6 Am6/F# F F/G C Gadd4/B Am6/F# F F/G C/G
 
 [Verse 3]
           C/G        Cmaj7/G
@@ -88,9 +104,8 @@ C      Gadd4/B Am6/F#
 smile, I       told you
 F               F/G
 nothing on this earth can make me
-C/G
-smile
 
 [Outro]
-C Ddim7 C Ddim7 C Ddim7 C Ddim7 Cmaj7
-(one bar each, fingerpicked in 16ths; mute the A string on beats 2 and 4 of the C bars)
+C     Ddim7 C Ddim7 C Ddim7 C Ddim7 Cmaj7
+smile
+(one bar each, fingerpicked in 16ths; mute the A string on beats 2 and 4 of the C bars; the last chord is rolled slowly)

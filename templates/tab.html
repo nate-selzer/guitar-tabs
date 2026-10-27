@@ -196,7 +196,7 @@
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) if (note.isDead) note.dynamics = 0;
   }
-  // Playback uses the strummed (brushed) score; the drawn copy drops the strum markers so the tab has no arrows.
+  // Playback uses the strummed (brushed) score; the drawn copy drops strum (brush) markers so the tab has no arrows; rolled chords (arpeggios) keep theirs.
   const tex = document.getElementById('tex').textContent.trim();
   const strummed = new alphaTab.midi.MidiFile();
   const importer = new alphaTab.importer.AlphaTexImporter();
@@ -209,7 +209,7 @@
   const freeRing = generator.tickLookup.masterBars.filter(m => freeRingBars.includes(m.masterBar.index)).map(m => [m.start, m.end]);
   api.scoreLoaded.on(score => {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
-      for (const voice of bar.voices) for (const beat of voice.beats) beat.brushType = 0;
+      for (const voice of bar.voices) for (const beat of voice.beats) if (beat.brushType === 1 || beat.brushType === 2) beat.brushType = 0;
   });
   capRing(strummed, __RING__ * 960, freeRing);
   humanize(strummed);
