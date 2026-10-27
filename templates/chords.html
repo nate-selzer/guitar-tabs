@@ -31,6 +31,7 @@
   .views { display: flex; gap: 4px; }
   .views a { font: 600 14px var(--body); color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; }
   .views a[aria-current] { color: var(--fg); border-color: var(--line); }
+  .views .source { margin-left: auto; }
   .views a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 14px 10px; }
   figure { margin: 0; display: grid; justify-items: center; gap: 2px; }
@@ -51,7 +52,7 @@
       __FACTS__
     </div>
   </header>
-  <nav class="views"><a href="./">Tab</a><a href="chords.html" aria-current="page">Chords</a></nav>
+  <nav class="views"><a href="./">Tab</a><a href="chords.html" aria-current="page">Chords</a><a class="source" href="https://github.com/nate-selzer/guitar-tabs/tree/main/__SLUG__">GitHub</a></nav>
 
   __NOTE__
 

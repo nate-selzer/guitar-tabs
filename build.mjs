@@ -120,6 +120,7 @@ async function buildSong(slug) {
   const fill = (template, extra) => fs.readFileSync(path.join(root, 'templates', template), 'utf8')
     .replaceAll('__TITLE__', esc(song.title))
     .replaceAll('__ARTIST__', esc(song.artist))
+    .replaceAll('__SLUG__', slug)
     .replace('__NOTE__', song.note ? `<p class="note">${song.note}</p>` : '')
     .replace('__DIAGRAMS__', () => diagrams)
     .replace('__FACTS__', () => extra(facts).map(f => `<span class="fact">${f}</span>`).join('\n      '));
