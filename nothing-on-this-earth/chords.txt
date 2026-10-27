@@ -2,24 +2,24 @@ Capo: 2nd fret
 
 Thumb over the neck. F, F/G, Am6/F#, Am/F# and Abdim fret the low E string with your thumb wrapped over the top of the neck. Your fingers then handle the D, G and B strings. The shapes look impossible as normal fingerings, but they're right.
 
-C/G        33201x
-Cmaj7/G    33200x
-Ddim7      x5646x
-C (barre)  x3555x
-Cmaj7      x3545x
-C7         x3535x
-Am6        x0421x
-Am6/F#     2x421x  (thumb on low E)
-F          1x321x  (thumb on low E)
-F/G        3x321x  (thumb on low E)
-C          x3201x
-Gadd4/B    x2001x
-Em7        0x203x
-Cadd9      x3203x
-Am         x0221x
-Am/F#      2x221x  (thumb on low E)
-Abdim      4x043x  (thumb on low E)
-Ddim       xx013x
+C/G          33201x
+Cmaj7/G      33200x
+Ddim7        x5646x
+C (barre)    x3555x
+Cmaj7        x3545x
+C7           x3535x
+Am6          x0421x
+Am6/F#       2x421x  (thumb on low E)
+F            1x321x  (thumb on low E)
+F/G          3x321x  (thumb on low E)
+C            x3201x
+Gadd4/B      x2001x
+Em7          0x203x
+Cadd9        x3203x
+Am           x0221x
+Am/F#        2x221x  (thumb on low E)
+Abdim        4x043x  (thumb on low E)
+Cmaj7 (end)  x35057
 
 [Verse 1]
            C/G       Cmaj7/G
@@ -92,5 +92,5 @@ C/G
 smile
 
 [Outro]
-C/G Ddim C/G Ddim C/G
-(fingerpicked in 16ths)
+C Ddim7 C Ddim7 C Ddim7 C Ddim7 Cmaj7
+(one bar each, fingerpicked in 16ths; mute the A string on beats 2 and 4 of the C bars)

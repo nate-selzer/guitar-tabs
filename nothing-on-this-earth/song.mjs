@@ -1,12 +1,11 @@
 // Chord shapes: low E -> high e, null = muted. `bass` lists the string indexes boom-chuck alternates through;
 // `thumb` marks a low-E note fretted with the thumb. Chords not listed here come from ../chords.mjs.
-const q = s => `"${s}"`;
-// Outro fingerpicking, played twice per bar in 16ths.
-const travisC = ['(3.5 1.2)', '0.3', '2.4', '1.2', '3.6', '0.3', '2.4', '1.2'];
-const pickDdim = ['(0.4 3.2)', '1.3', '0.4', '3.2', '0.4', '1.3', '0.4', '3.2'];
-const pick = (chord, notes) => [...notes, ...notes]
-  .map((n, i) => `${n.replace(/(\d+\.\d)/g, '$1{lr}')}.16${i === 0 ? ` {ch ${q(chord)}}` : ''}`)
+// Outro bars: bass then B, D, B in 16ths with the G string unpicked; the C bars mute the A string on beats 2 and 4.
+const outroBar = (chord, half) => [...half, ...half]
+  .map((n, i) => (n === 'x' ? 'x.5.16' : `${n}{lr}.16`) + (i === 0 ? ` {ch "${chord}"}` : ''))
   .join(' ');
+const outroC = outroBar('C (barre)', ['3.5', '5.2', '5.4', '5.2', 'x', '5.2', '5.4', '5.2']);
+const outroDdim = outroBar('Ddim7', ['5.5', '6.2', '6.4', '6.2', '5.5', '6.2', '6.4', '6.2']);
 
 // Beats 1/3 pinch D+B on the "and"; beats 2/4 play G, D, B on the "e", "and", "a".
 const pinch = (c, quarters, fx, state, { note, bassStrings }) => {
@@ -31,6 +30,7 @@ export default {
   capo: 2,
   key: 'D',
   tempo: 80,
+  ring: 0.5,
   pattern: 'pinch',
   patterns: {
     pinch,
@@ -59,7 +59,7 @@ export default {
     'Am':        { frets: [null,0,2,2,1,null] },
     'Am/F#':     { frets: [2,null,2,2,1,null], thumb: true },
     'A♭dim':     { frets: [4,null,0,4,3,null], thumb: true },
-    'Ddim':      { frets: [null,null,0,1,3,null] },
+    'Cmaj7 (end)': { frets: [null,3,5,0,5,7] },
   },
   // [chord|null, quarter beats, verse 1 lyric, verse 2 lyric]; { raw } is literal alphaTex.
   bars: [
@@ -93,11 +93,15 @@ export default {
     { beats: [['C', 1, 'smile,'], ['Gadd4/B', 1, 'I'], ['Am6/F#', 1, 'told you'], ['Am6/F#', 1]] },
     { beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
     { doubleBar: true, beats: [['C/G', 4, 'smile']] },
-    { beats: [{ raw: pick('C/G', travisC) }] },
-    { beats: [{ raw: pick('Ddim', pickDdim) }] },
-    { beats: [{ raw: pick('C/G', travisC) }] },
-    { beats: [{ raw: pick('Ddim', pickDdim) }] },
-    { beats: [{ raw: '(3.5 2.4 0.3 1.2).1 {ch "C/G"}' }] },
+    { beats: [{ raw: outroC }] },
+    { beats: [{ raw: outroDdim }] },
+    { beats: [{ raw: outroC }] },
+    { beats: [{ raw: outroDdim }] },
+    { beats: [{ raw: outroC }] },
+    { beats: [{ raw: outroDdim }] },
+    { beats: [{ raw: outroC }] },
+    { beats: [{ raw: outroDdim }] },
+    { beats: [{ raw: '(3.5{lr} 5.4{lr} 0.3{lr} 5.2{lr} 7.1{lr}).1 {ch "Cmaj7 (end)"}' }] },
   ],
   sheet: [
     ['Verse 1', [
@@ -141,8 +145,8 @@ export default {
       [['C/G', 'smile']],
     ]],
     ['Outro', [
-      [['C/G', ''], ['Ddim', ''], ['C/G', ''], ['Ddim', ''], ['C/G', '']],
-      '(fingerpicked in 16ths)',
+      [['C (barre)', ''], ['Ddim7', ''], ['C (barre)', ''], ['Ddim7', ''], ['C (barre)', ''], ['Ddim7', ''], ['C (barre)', ''], ['Ddim7', ''], ['Cmaj7 (end)', '']],
+      '(one bar each, fingerpicked in 16ths; mute the A string on beats 2 and 4 of the C bars)',
     ]],
   ],
 };

@@ -82,6 +82,12 @@
       <option value="0.75">75%</option>
       <option value="1" selected>100%</option>
     </select>
+    <label for="sound" class="status">Sound</label>
+    <select id="sound" title="Higher-quality soundfonts download when picked">
+      <option value="basic">Basic</option>
+      <option value="gugs">GeneralUser GS (32 MB)</option>
+      <option value="fluid">FluidR3 (24 MB)</option>
+    </select>
     <span id="status" class="status"></span>
   </div>
 
@@ -132,24 +138,127 @@
     },
   });
 
+  // Let-ring sustains a note until its string is played again (up to a bar); cap it so chords don't blur together.
+  // The final chord is left to ring out.
+  function capRing(midi, maxTicks) {
+    for (const track of midi.tracks) {
+      const open = new Map();
+      const lastOn = Math.max(...track.events.filter(e => e.type === 128).map(e => e.tick));
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        // alphaTab's event types: 128 = note on, 144 = note off (class names are minified in the browser build).
+        if (e.type === 128 && e.noteVelocity > 0 && e.tick < lastOn) open.set(key, e.tick);
+        else if ((e.type === 144 || e.type === 128) && open.has(key)) {
+          e.tick = Math.min(e.tick, open.get(key) + maxTicks);
+          open.delete(key);
+        }
+      }
+      track.events.sort((a, b) => a.tick - b.tick);
+    }
+  }
+  // Small seeded variations so playback sounds played, not sequenced: notes on the beat (mostly bass) a bit louder,
+  // in-between notes softer, each note's volume and timing nudged slightly, and chord notes spread a few ms apart.
+  function humanize(midi) {
+    let seed = 1;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+    for (const track of midi.tracks) {
+      // Grace notes are short and start off the sixteenth-note grid (240 ticks); find them before shifting anything.
+      const grace = new Set();
+      const started = new Map();
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        if (e.type === 128 && e.noteVelocity > 0) started.set(key, e);
+        else if ((e.type === 144 || e.type === 128) && started.has(key)) {
+          const on = started.get(key);
+          if (e.tick - on.tick < 200 && on.tick % 240 !== 0) grace.add(on);
+          started.delete(key);
+        }
+      }
+      const shift = new Map();
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        if (e.type === 128 && e.noteVelocity > 0) {
+          const onBeat = e.tick % 960 === 0;
+          // Already-quiet notes (mutes) stay quiet.
+          const base = grace.has(e) ? 35 : e.noteVelocity < 30 ? e.noteVelocity : e.noteVelocity + (onBeat ? 8 : -6);
+          e.noteVelocity = Math.max(1, Math.min(127, Math.round(base + rand() * 6)));
+          const d = Math.round(rand() * 8);
+          shift.set(key, d);
+          e.tick = Math.max(0, e.tick + d);
+        } else if ((e.type === 144 || e.type === 128) && shift.has(key)) {
+          e.tick = Math.max(0, e.tick + shift.get(key));
+          shift.delete(key);
+        }
+      }
+      track.events.sort((a, b) => a.tick - b.tick);
+    }
+  }
+  // Muted (x) notes play at the softest dynamic, so they mostly just stop the string rather than thump.
+  function quietMutes(score) {
+    for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
+      for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) if (note.isDead) note.dynamics = 0;
+  }
   // Playback uses the strummed (brushed) score; the drawn copy drops the strum markers so the tab has no arrows.
   const tex = document.getElementById('tex').textContent.trim();
   const strummed = new alphaTab.midi.MidiFile();
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(tex, api.settings);
-  new alphaTab.midi.MidiFileGenerator(importer.readScore(), api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed)).generate();
+  const strumScore = importer.readScore();
+  quietMutes(strumScore);
+  new alphaTab.midi.MidiFileGenerator(strumScore, api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed)).generate();
   api.scoreLoaded.on(score => {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) beat.brushType = 0;
   });
+  capRing(strummed, __RING__ * 960);
+  humanize(strummed);
   api.midiLoad.on(midi => { midi.tracks = strummed.tracks; });
   api.tex(tex);
 
+  // Basic soundfont by default; the Sound menu downloads a larger one on demand and remembers the pick per browser.
+  const SOUNDS = {
+    gugs: ['../vendor/soundfont-hq/GeneralUser-GS.sf2', 'GeneralUser GS'],
+    fluid: ['../vendor/soundfont-fluid/FluidR3Mono_GM.sf3', 'FluidR3'],
+  };
+  const soundSelect = document.getElementById('sound');
+  async function fetchWithProgress(url, label) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const total = Number(res.headers.get('content-length')) || 0;
+    const reader = res.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+    for (let r; !(r = await reader.read()).done;) {
+      chunks.push(r.value);
+      loaded += r.value.length;
+      if (total) status.textContent = `Downloading ${label} ${Math.floor((loaded / total) * 100)}%`;
+    }
+    const bytes = new Uint8Array(loaded);
+    let offset = 0;
+    for (const c of chunks) { bytes.set(c, offset); offset += c.length; }
+    return bytes;
+  }
+  async function loadSound(name) {
+    soundSelect.disabled = true;
+    try {
+      const bytes = SOUNDS[name]
+        ? await fetchWithProgress(...SOUNDS[name])
+        : Uint8Array.from(atob((await (await fetch('../vendor/alphatab/soundfont/sonivox.sf2.b64.txt')).text()).trim()), c => c.charCodeAt(0));
+      status.textContent = 'Loading sounds…';
+      api.loadSoundFont(bytes, false);
+      soundSelect.value = name;
+      try { localStorage.setItem('guitar-tabs:sound', name); } catch {}
+    } catch (e) {
+      status.textContent = 'Could not load sounds: ' + e.message;
+    } finally {
+      soundSelect.disabled = false;
+    }
+  }
+  soundSelect.addEventListener('change', () => loadSound(soundSelect.value));
+  let startSound = 'basic';
+  try { startSound = localStorage.getItem('guitar-tabs:sound') || (localStorage.getItem('guitar-tabs:hq') === '1' ? 'gugs' : 'basic'); } catch {}
   status.textContent = 'Loading sounds…';
-  fetch('../vendor/alphatab/soundfont/sonivox.sf2.b64.txt')
-    .then(r => r.text())
-    .then(b64 => api.loadSoundFont(Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0))))
-    .catch(e => { status.textContent = 'Playback unavailable: ' + e.message; });
+  loadSound(SOUNDS[startSound] ? startSound : 'basic');
 
   api.soundFontLoad.on(e => {
     status.textContent = 'Loading sounds ' + Math.floor((e.loaded / e.total) * 100) + '%';

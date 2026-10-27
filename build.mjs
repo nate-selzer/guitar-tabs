@@ -124,7 +124,7 @@ async function buildSong(slug) {
     .replace('__DIAGRAMS__', () => diagrams)
     .replace('__FACTS__', () => extra(facts).map(f => `<span class="fact">${f}</span>`).join('\n      '));
 
-  fs.writeFileSync(path.join(dir, 'index.html'), fill('tab.html', f => [...f, `<b>${num}/${den}</b>`, `♩ = <b>${song.tempo}</b>`]).replace('__TEX__', () => tex));
+  fs.writeFileSync(path.join(dir, 'index.html'), fill('tab.html', f => [...f, `<b>${num}/${den}</b>`, `♩ = <b>${song.tempo}</b>`]).replace('__TEX__', () => tex).replace('__RING__', song.ring ?? 1));
   fs.writeFileSync(path.join(dir, 'chords.html'), fill('chords.html', f => f)
     .replace('__SHEET__', () => song.sheet.map(([name, lines]) => `<section><h2>[${esc(name)}]</h2><pre>${lines.map(renderLine).join('\n')}</pre></section>`).join('')));
   fs.writeFileSync(path.join(dir, 'chords.txt'), plainSheet(song, shapes));

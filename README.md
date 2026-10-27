@@ -9,6 +9,8 @@ Each song is a folder with a `song.mjs` data file: title, capo, tempo, chord sha
 - `song.tex`: the alphaTex source
 - `<title>.gp`: a Guitar Pro file
 
+Playback uses alphaTab's small built-in soundfont by default. The **Sound** menu (tab page and editor) downloads a larger one on demand and remembers the pick per browser: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins (32 MB, `vendor/soundfont-hq/`) or FluidR3 Mono from [MuseScore](https://github.com/musescore/MuseScore/tree/main/share/sound) (24 MB, MIT, `vendor/soundfont-fluid/`). Each folder includes its license. Playback lets notes ring, capped at `ring` beats per note (default 1, set in `song.mjs`); the final chord rings out.
+
 Chords a song doesn't define come from the standard shapes in `chords.mjs`, which also checks each chord name against the notes its frets actually play. Page layouts live in `templates/`.
 
 ```sh
@@ -28,7 +30,7 @@ Then open http://localhost:8810/editor/?song=<folder> (for example `?song=nothin
 
 - Click any note in a bar to open it as a grid: one row per string (high e at the top), one column per sixteenth note, with the bar's chord names and lyrics shown above the columns where they start.
 - Type a fret number in a cell to add a note, or clear it to remove one. A note rings until the next note in the bar.
-- Add `h` after a fret (e.g. `0h`) to hammer on or pull off to the next note on that string.
+- Symbols: `x` muted, `5h` hammer-on / `5p` pull-off to the next note on that string, `5/` slide to the next note, `5b` bend up a whole step, `5~` vibrato, `(5)` ghost note, `<12>` natural harmonic, `5pm` palm mute, `5>` accent, `5^` heavy accent, `5.` staccato, `0h2` grace note hammered onto 2 right on the beat (`0/2` slides). Suffixes combine, e.g. `7b~`.
 - **Play bar** loops the grid as it is, including unsaved changes.
 - **Save & rebuild** writes the bar to `<folder>/overrides.json` and rebuilds the song; that bar no longer follows the song's pattern.
 - **Reset to pattern** removes the bar's override.

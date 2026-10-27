@@ -19,7 +19,7 @@
   #panel { position: fixed; z-index: 2000; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px 16px; display: grid; gap: 10px; max-height: 330px; overflow: auto; }
   #panel[hidden] { display: none !important; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  button { font: 600 13px var(--body); border-radius: 6px; padding: 6px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--fg); cursor: pointer; }
+  button, select { font: 600 13px var(--body); border-radius: 6px; padding: 6px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--fg); cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   #status { color: var(--muted); white-space: pre-wrap; }
@@ -49,9 +49,16 @@
     <button id="play">Play bar</button>
     <button id="save" class="primary">Save &amp; rebuild</button>
     <button id="reset">Reset to pattern</button>
+    <label for="sound">Sound</label>
+    <select id="sound" title="Higher-quality soundfonts download when picked">
+      <option value="basic">Basic</option>
+      <option value="gugs">GeneralUser GS (32 MB)</option>
+      <option value="fluid">FluidR3 (24 MB)</option>
+    </select>
     <span id="status"></span>
   </div>
-  <div class="hint">Type a fret in a cell; clear it to remove the note. Add <b>h</b> after the fret (e.g. <b>0h</b>) to hammer on or pull off to the next note on that string. A note rings until the next note in the bar.</div>
+  <div class="hint">Type a fret in a cell; clear it to remove the note. A note rings until the next note in the bar. Symbols:
+    <b>x</b> muted · <b>5h</b> hammer-on / <b>5p</b> pull-off to the next note on that string · <b>5/</b> slide to the next note · <b>5b</b> bend up a whole step · <b>5~</b> vibrato · <b>(5)</b> ghost note · <b>&lt;12&gt;</b> natural harmonic · <b>5pm</b> palm mute · <b>5&gt;</b> accent · <b>5^</b> heavy accent · <b>5.</b> staccato · <b>0h2</b> grace note: hammer 0 onto 2 right on the beat (<b>0/2</b> slides). Combine suffixes, e.g. <b>7b~</b>.</div>
   <div class="grid-wrap"><table id="grid"></table></div>
 </section>
 
@@ -78,15 +85,90 @@
     player: { enablePlayer: true, enableCursor: false },
   });
   // alphaTab only creates the player once a score is loaded, so the soundfont goes in after the first one.
-  const soundFont = fetch('/vendor/alphatab/soundfont/sonivox.sf2.b64.txt').then(r => r.text())
-    .then(b64 => Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0)));
-  preview.scoreLoaded.on(function first() { preview.scoreLoaded.off(first); soundFont.then(bytes => preview.loadSoundFont(bytes)); });
+  // Same Sound menu as the tab page, sharing its remembered pick.
+  const SOUNDS = { gugs: '/vendor/soundfont-hq/GeneralUser-GS.sf2', fluid: '/vendor/soundfont-fluid/FluidR3Mono_GM.sf3' };
+  let sound = 'basic';
+  try { sound = localStorage.getItem('guitar-tabs:sound') || (localStorage.getItem('guitar-tabs:hq') === '1' ? 'gugs' : 'basic'); } catch {}
+  if (!SOUNDS[sound]) sound = 'basic';
+  $('sound').value = sound;
+  const soundBytes = name => SOUNDS[name]
+    ? fetch(SOUNDS[name]).then(r => r.arrayBuffer()).then(b => new Uint8Array(b))
+    : fetch('/vendor/alphatab/soundfont/sonivox.sf2.b64.txt').then(r => r.text()).then(b64 => Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0)));
+  preview.scoreLoaded.on(function first() { preview.scoreLoaded.off(first); soundBytes(sound).then(bytes => preview.loadSoundFont(bytes, false)); });
+  $('sound').addEventListener('change', async () => {
+    sound = $('sound').value;
+    try { localStorage.setItem('guitar-tabs:sound', sound); } catch {}
+    if (!preview.score) return; // the first preview loads the chosen soundfont itself
+    $('sound').disabled = true;
+    status(SOUNDS[sound] ? 'Downloading sound…' : 'Loading sounds…');
+    preview.loadSoundFont(await soundBytes(sound), false);
+    $('sound').disabled = false;
+    status('');
+  });
   let header = '';
+  // Small seeded variations so playback sounds played, not sequenced: notes on the beat (mostly bass) a bit louder,
+  // in-between notes softer, each note's volume and timing nudged slightly, and chord notes spread a few ms apart.
+  function humanize(midi) {
+    let seed = 1;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+    for (const track of midi.tracks) {
+      // Grace notes are short and start off the sixteenth-note grid (240 ticks); find them before shifting anything.
+      const grace = new Set();
+      const started = new Map();
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        if (e.type === 128 && e.noteVelocity > 0) started.set(key, e);
+        else if ((e.type === 144 || e.type === 128) && started.has(key)) {
+          const on = started.get(key);
+          if (e.tick - on.tick < 200 && on.tick % 240 !== 0) grace.add(on);
+          started.delete(key);
+        }
+      }
+      const shift = new Map();
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        if (e.type === 128 && e.noteVelocity > 0) {
+          const onBeat = e.tick % 960 === 0;
+          // Already-quiet notes (mutes) stay quiet.
+          const base = grace.has(e) ? 35 : e.noteVelocity < 30 ? e.noteVelocity : e.noteVelocity + (onBeat ? 8 : -6);
+          e.noteVelocity = Math.max(1, Math.min(127, Math.round(base + rand() * 6)));
+          const d = Math.round(rand() * 8);
+          shift.set(key, d);
+          e.tick = Math.max(0, e.tick + d);
+        } else if ((e.type === 144 || e.type === 128) && shift.has(key)) {
+          e.tick = Math.max(0, e.tick + shift.get(key));
+          shift.delete(key);
+        }
+      }
+      track.events.sort((a, b) => a.tick - b.tick);
+    }
+  }
+  // Let-ring sustains a note until its string is played again (up to a bar); cap it so chords don't blur together.
+  // The final chord is left to ring out.
+  function capRing(midi, maxTicks) {
+    for (const track of midi.tracks) {
+      const open = new Map();
+      const lastOn = Math.max(...track.events.filter(e => e.type === 128).map(e => e.tick));
+      for (const e of track.events) {
+        const key = `${e.channel}:${e.noteKey}`;
+        // alphaTab's event types: 128 = note on, 144 = note off (class names are minified in the browser build).
+        if (e.type === 128 && e.noteVelocity > 0 && e.tick < lastOn) open.set(key, e.tick);
+        else if ((e.type === 144 || e.type === 128) && open.has(key)) {
+          e.tick = Math.min(e.tick, open.get(key) + maxTicks);
+          open.delete(key);
+        }
+      }
+      track.events.sort((a, b) => a.tick - b.tick);
+    }
+  }
+  preview.midiLoad.on(midi => { capRing(midi, ringBeats * 960); humanize(midi); });
+  let ringBeats = 1;
 
   async function load() {
     if (!slug) return status('Add ?song=<folder> to the URL.', true);
     const tex = await (await fetch(`/${slug}/song.tex`, { cache: 'no-store' })).text();
     header = tex.slice(0, tex.indexOf('\\ts'));
+    ringBeats = (await import(`/${slug}/song.mjs?v=${Date.now()}`)).default.ring ?? 1;
     $('title').textContent = tex.match(/\\title "(.*)"/)?.[1] ?? slug;
     api.tex(tex);
   }
@@ -100,12 +182,19 @@
     const length = Math.round(masterBar.calculateDuration() / 240);
     const cells = STRINGS.map(() => Array(length).fill(''));
     const markers = {};
+    const pendingGrace = {};
     for (const beat of bar.voices[0].beats) {
+      if (beat.graceType) { for (const n of beat.notes) pendingGrace[n.string] = n; continue; }
       const pos = Math.round(beat.playbackStart / 240);
-      for (const note of beat.notes) cells[6 - note.string][pos] = `${note.fret}${note.isHammerPullOrigin ? 'h' : ''}`;
+      for (const note of beat.notes) {
+        const g = pendingGrace[note.string];
+        cells[6 - note.string][pos] = (g ? `${g.fret}${g.slideOutType ? '/' : 'h'}` : '') + formatNote(note);
+      }
+      for (const k in pendingGrace) delete pendingGrace[k];
       if (beat.chord || beat.lyrics?.some(Boolean)) markers[pos] = { chord: beat.chord?.name, lyrics: beat.lyrics ?? [] };
     }
     selected = { index, length, markers };
+    if (preview.playerState === 1) preview.stop();
     $('bar-label').textContent = `Bar ${index + 1}`;
     renderGrid(cells);
     $('panel').hidden = false;
@@ -125,17 +214,47 @@
     $('grid').innerHTML = `<tr><th></th>${marks}</tr><tr><th></th>${head}</tr>${rows}`;
   }
 
+  // Cell text <-> note: x, (5) ghost, <12> harmonic, 5 plain; suffixes h/p (hammer/pull), / (slide), b (bend), ~ (vibrato), pm, > (accent), ^ (heavy accent), . (staccato).
+  const SUFFIX_FX = { h: 'h', p: 'h', '/': 'sl', b: 'b (0 4)', '~': 'v', pm: 'pm', '>': 'ac', '^': 'hac', '.': 'st' };
+  function parseCell(text) {
+    if (!text) return null;
+    if (/^x$/i.test(text)) return { dead: true };
+    const grace = text.match(/^(\d{1,2})([hp/])(.+)$/i);
+    if (grace) {
+      const main = parseCell(grace[3]);
+      return main && !main.dead && { ...main, grace: grace[1], graceFx: grace[2] === '/' ? 'sl' : 'h' };
+    }
+    const m = text.match(/^(?:\((\d{1,2})\)|<(\d{1,2})>|(\d{1,2}))((?:pm|[hp/b~>^.])*)$/i);
+    if (!m) return undefined;
+    const fx = [m[1] && 'g', m[2] && 'nh', ...[...new Set(m[4].toLowerCase().match(/pm|[hp/b~>^.]/g) ?? [])].map(k => SUFFIX_FX[k])];
+    return { fret: m[1] ?? m[2] ?? m[3], fx: [...new Set(fx.filter(Boolean))] };
+  }
+  function formatNote(n) {
+    if (n.isDead) return 'x';
+    let text = n.isGhost ? `(${n.fret})` : n.harmonicType === 1 ? `<${n.fret}>` : `${n.fret}`;
+    if (n.isHammerPullOrigin) text += n.hammerPullDestination && n.hammerPullDestination.fret < n.fret ? 'p' : 'h';
+    if (n.slideOutType) text += '/';
+    if (n.hasBend) text += 'b';
+    if (n.vibrato) text += '~';
+    if (n.isPalmMute) text += 'pm';
+    if (n.accentuated) text += n.accentuated === 2 ? '^' : '>';
+    if (n.isStaccato) text += '.';
+    return text;
+  }
+
   // Turns the grid back into alphaTex: one beat per onset, lasting until the next onset, padded with rests.
   function gridToTex() {
     const { length, markers } = selected;
     const notes = Array.from({ length }, () => []);
+    const graces = Array.from({ length }, () => []);
     let ok = true;
     for (let r = 0; r < 6; r++) for (let i = 0; i < length; i++) {
       const input = $(`c-${r}-${i}`);
-      const m = input.value.trim().match(/^(\d{1,2})(h?)$/i);
+      const m = parseCell(input.value.trim());
       input.classList.toggle('bad', !!input.value.trim() && !m);
       if (input.value.trim() && !m) ok = false;
-      if (m) notes[i].push(`${m[1]}.${r + 1}{lr${m[2] ? ' h' : ''}}`);
+      if (m) notes[i].push(m.dead ? `x.${r + 1}` : `${m.fret}.${r + 1}{${[m.fx.includes('st') ? null : 'lr', ...m.fx].filter(Boolean).join(' ')}}`);
+      if (m?.grace) graces[i].push(`${m.grace}.${r + 1}{lr ${m.graceFx}}`);
     }
     if (!ok) return null;
     const onsets = [...new Set([0, ...notes.flatMap((n, i) => (n.length ? [i] : [])), ...Object.keys(markers).map(Number)])].sort((a, b) => a - b);
@@ -148,6 +267,7 @@
         const m = first ? markers[pos] : null;
         const fx = [dotted && 'd', m?.chord && `ch "${m.chord}"`, ...(m?.lyrics ?? []).map((t, i) => t && `lyrics ${i} "${t.replace(/"/g, '\\"')}"`)].filter(Boolean);
         const body = first && notes[pos].length ? (notes[pos].length > 1 ? `(${notes[pos].join(' ')})` : notes[pos][0]) : 'r';
+        if (first && graces[pos].length) out.push(`${graces[pos].length > 1 ? `(${graces[pos].join(' ')})` : graces[pos][0]}.16 {gr}`);
         out.push(`${body}${dur}${fx.length ? ` {${fx.join(' ')}}` : ''}`);
         gap -= len;
         first = false;
@@ -167,23 +287,28 @@
 
   $('save').addEventListener('click', () => {
     const raw = gridToTex();
-    if (raw === null) return status('Fix the red cells: use a fret number, optionally followed by h.', true);
+    if (raw === null) return status('Fix the red cells: a fret number with optional symbols (see the list above), or x.', true);
     change('PUT', { raw });
   });
   $('reset').addEventListener('click', () => change('DELETE'));
   $('play').addEventListener('click', () => {
     if (preview.playerState === 1) return preview.stop();
     const raw = gridToTex();
-    if (raw === null) return status('Fix the red cells: use a fret number, optionally followed by h.', true);
+    if (raw === null) return status('Fix the red cells: a fret number with optional symbols (see the list above), or x.', true);
     const ts = api.score.masterBars[selected.index];
-    const start = () => { preview.isLooping = true; preview.play(); };
-    preview.midiLoaded.on(function loaded() {
-      preview.midiLoaded.off(loaded);
-      if (preview.isReadyForPlayback) start();
-      else preview.playerReady.on(function ready() { preview.playerReady.off(ready); start(); });
-    });
+    pendingPlay = true;
     preview.tex(`${header}\\ts (${ts.timeSignatureNumerator} ${ts.timeSignatureDenominator}) ${raw}`);
   });
+  // Registered once up front: adding a midiLoaded handler after a load makes alphaTab 1.8.4 recurse forever.
+  let pendingPlay = false;
+  const playIfPending = () => {
+    if (!pendingPlay || !preview.isReadyForPlayback) return;
+    pendingPlay = false;
+    preview.isLooping = true;
+    preview.play();
+  };
+  preview.midiLoaded.on(playIfPending);
+  preview.playerReady.on(playIfPending);
   preview.playerStateChanged.on(e => { $('play').textContent = e.state === 1 ? 'Stop' : 'Play bar'; });
   load();
 </script>
