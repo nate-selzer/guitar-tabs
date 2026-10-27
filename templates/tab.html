@@ -138,15 +138,15 @@
     },
   });
 
-  // Let-ring sustains up to a bar; cap it so chords don't blur, except the final chord.
-  function capRing(midi, maxTicks) {
+  // Let-ring sustains up to a bar; cap it so chords don't blur, except the final chord and `free` [start, end) tick ranges.
+  function capRing(midi, maxTicks, free = []) {
     for (const track of midi.tracks) {
       const open = new Map();
       const lastOn = Math.max(...track.events.filter(e => e.type === 128).map(e => e.tick));
       for (const e of track.events) {
         const key = `${e.channel}:${e.noteKey}`;
         // alphaTab's event types: 128 = note on, 144 = note off (class names are minified in the browser build).
-        if (e.type === 128 && e.noteVelocity > 0 && e.tick < lastOn) open.set(key, e.tick);
+        if (e.type === 128 && e.noteVelocity > 0 && e.tick < lastOn && !free.some(([a, b]) => e.tick >= a && e.tick < b)) open.set(key, e.tick);
         else if ((e.type === 144 || e.type === 128) && open.has(key)) {
           e.tick = Math.min(e.tick, open.get(key) + maxTicks);
           open.delete(key);
@@ -203,12 +203,15 @@
   importer.initFromString(tex, api.settings);
   const strumScore = importer.readScore();
   quietMutes(strumScore);
-  new alphaTab.midi.MidiFileGenerator(strumScore, api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed)).generate();
+  const generator = new alphaTab.midi.MidiFileGenerator(strumScore, api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed));
+  generator.generate();
+  const freeRingBars = __FREE_RING__;
+  const freeRing = generator.tickLookup.masterBars.filter(m => freeRingBars.includes(m.masterBar.index)).map(m => [m.start, m.end]);
   api.scoreLoaded.on(score => {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) beat.brushType = 0;
   });
-  capRing(strummed, __RING__ * 960);
+  capRing(strummed, __RING__ * 960, freeRing);
   humanize(strummed);
   api.midiLoad.on(midi => { midi.tracks = strummed.tracks; });
   api.tex(tex);

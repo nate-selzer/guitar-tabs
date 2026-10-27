@@ -159,14 +159,17 @@
       track.events.sort((a, b) => a.tick - b.tick);
     }
   }
-  preview.midiLoad.on(midi => { capRing(midi, ringBeats * 960); humanize(midi); });
+  preview.midiLoad.on(midi => { if (!songBars[selected?.index]?.letRing) capRing(midi, ringBeats * 960); humanize(midi); });
   let ringBeats = 1;
+  let songBars = [];
 
   async function load() {
     if (!slug) return status('Add ?song=<folder> to the URL.', true);
     const tex = await (await fetch(`/${slug}/song.tex`, { cache: 'no-store' })).text();
     header = tex.slice(0, tex.indexOf('\\ts'));
-    ringBeats = (await import(`/${slug}/song.mjs?v=${Date.now()}`)).default.ring ?? 1;
+    const song = (await import(`/${slug}/song.mjs?v=${Date.now()}`)).default;
+    ringBeats = song.ring ?? 1;
+    songBars = song.bars;
     $('title').textContent = tex.match(/\\title "(.*)"/)?.[1] ?? slug;
     api.tex(tex);
   }

@@ -9,7 +9,7 @@ Each song is a folder with a `song.mjs` data file: title, capo, tempo, chord sha
 - `song.tex`: the alphaTex source
 - `<title>.gp`: a Guitar Pro file
 
-Playback uses alphaTab's small built-in soundfont by default. The **Sound** menu (tab page and editor) downloads a larger one on demand and remembers the pick per browser: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins (32 MB, `vendor/soundfont-hq/`) or FluidR3 Mono from [MuseScore](https://github.com/musescore/MuseScore/tree/main/share/sound) (24 MB, MIT, `vendor/soundfont-fluid/`). Each folder includes its license. Playback lets notes ring, capped at `ring` beats per note (default 1, set in `song.mjs`); the final chord rings out.
+Playback uses alphaTab's small built-in soundfont by default. The **Sound** menu (tab page and editor) downloads a larger one on demand and remembers the pick per browser: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins (32 MB, `vendor/soundfont-hq/`) or FluidR3 Mono from [MuseScore](https://github.com/musescore/MuseScore/tree/main/share/sound) (24 MB, MIT, `vendor/soundfont-fluid/`). Each folder includes its license. Playback lets notes ring, capped at `ring` beats per note (default 1, set in `song.mjs`); the final chord and any bar flagged `letRing: true` ring freely.
 
 Chords a song doesn't define come from the standard shapes in `chords.mjs`, which also checks each chord name against the notes its frets actually play. Page layouts live in `templates/`.
 
