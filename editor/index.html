@@ -133,8 +133,7 @@
   const soundBytes = name => SOUNDS[name]
     ? fetch(SOUNDS[name]).then(r => r.arrayBuffer()).then(b => new Uint8Array(b))
     : fetch('/vendor/alphatab/soundfont/sonivox.sf2.b64.txt').then(r => r.text()).then(b64 => Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0)));
-  // Mutes play at the softest dynamic so they mostly just stop the string; hammer-on, pull-off and slide targets
-  // aren't picked, so they play at mezzo-piano to blend in (grace-note targets stay full volume).
+  // Mutes barely sound; unpicked legato targets play softer, except grace-note targets.
   function quietMutes(score) {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {

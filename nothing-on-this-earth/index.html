@@ -293,8 +293,7 @@
       track.events.sort((a, b) => a.tick - b.tick);
     }
   }
-  // Mutes play at the softest dynamic so they mostly just stop the string; hammer-on, pull-off and slide targets
-  // aren't picked, so they play at mezzo-piano to blend in (grace-note targets stay full volume).
+  // Mutes barely sound; unpicked legato targets play softer, except grace-note targets.
   function quietMutes(score) {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {
