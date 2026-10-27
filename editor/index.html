@@ -16,7 +16,22 @@
   .hint { color: var(--muted); }
   .sheet { background: var(--paper); margin: 0 16px; border-radius: 6px; box-shadow: 0 0 0 1px var(--line); overflow-x: auto; }
   #tab .at-cursor-bar { background: rgb(46 106 88 / .12); }
-  #panel { position: fixed; z-index: 2000; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px 16px; display: grid; gap: 10px; max-height: 330px; overflow: auto; }
+  #panel { position: fixed; z-index: 2000; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px 16px; display: grid; gap: 10px; max-height: 48vh; overflow: auto; }
+  .field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; font-size: 13px; }
+  .work { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: flex-start; }
+  .work .grid-wrap { min-width: 0; flex: 1 1 560px; display: grid; gap: 6px; }
+  .hint { margin: 0; }
+  .legend { flex: 1 1 300px; max-width: 520px; display: grid; gap: 6px; }
+  .legend h2 { margin: 0; font: 700 12px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .legend dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+  .legend dl > div { display: grid; grid-template-columns: 44px 1fr; gap: 8px; align-items: baseline; }
+  .legend dt, .legend code { font: 700 13px var(--mono); color: var(--accent); }
+  .legend dt { text-align: center; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 1px 0; }
+  .legend dd { margin: 0; font-size: 13px; }
+  .sheet { position: relative; }
+  #tab { min-width: 760px; }
+  #sel { position: absolute; pointer-events: none; background: rgb(46 106 88 / .14); border-left: 3px solid var(--accent); z-index: 5; }
+  @media (prefers-reduced-motion: no-preference) { #sel { transition: left .15s, top .15s, width .15s; } }
   #panel[hidden] { display: none !important; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   button, select { font: 600 13px var(--body); border-radius: 6px; padding: 6px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--fg); cursor: pointer; }
@@ -41,7 +56,7 @@
   <h1 id="title">Tab editor</h1>
   <span class="hint">Click a bar to edit it.</span>
 </header>
-<div class="sheet"><div id="tab"></div></div>
+<div class="sheet"><div id="tab"></div><div id="sel" hidden></div></div>
 
 <section id="panel" hidden>
   <div class="row">
@@ -49,17 +64,41 @@
     <button id="play">Play bar</button>
     <button id="save" class="primary">Save &amp; rebuild</button>
     <button id="reset">Reset to pattern</button>
-    <label for="sound">Sound</label>
-    <select id="sound" title="Higher-quality soundfonts download when picked">
-      <option value="basic">Basic</option>
-      <option value="gugs">GeneralUser GS (32 MB)</option>
-      <option value="fluid">FluidR3 (24 MB)</option>
-    </select>
+    <label class="field"><span>Sound</span>
+      <select id="sound" title="Higher-quality soundfonts download when picked">
+        <option value="basic">Basic</option>
+        <option value="gugs">GeneralUser GS (32 MB)</option>
+        <option value="fluid">FluidR3 (24 MB)</option>
+      </select>
+    </label>
     <span id="status"></span>
   </div>
-  <div class="hint">Type a fret in a cell; clear it to remove the note. A note rings until the next note in the bar. Symbols:
-    <b>x</b> muted · <b>5h</b> hammer-on / <b>5p</b> pull-off to the next note on that string · <b>5/</b> slide to the next note · <b>5b</b> bend up a whole step · <b>5~</b> vibrato · <b>(5)</b> ghost note · <b>&lt;12&gt;</b> natural harmonic · <b>5pm</b> palm mute · <b>5&gt;</b> accent · <b>5^</b> heavy accent · <b>5.</b> staccato · <b>0h2</b> grace note: hammer 0 onto 2 right on the beat (<b>0/2</b> slides). Combine suffixes, e.g. <b>7b~</b>.</div>
-  <div class="grid-wrap"><table id="grid"></table></div>
+  <div class="work">
+    <div class="grid-wrap">
+      <p class="hint">Type a fret in a cell; clear it to remove the note. A note rings until the next note in the bar.</p>
+      <table id="grid"></table>
+    </div>
+    <aside class="legend" aria-labelledby="legend-title">
+      <h2 id="legend-title">Symbols</h2>
+      <dl>
+        <div><dt>5</dt><dd>Fret 5</dd></div>
+        <div><dt>x</dt><dd>Muted</dd></div>
+        <div><dt>5h</dt><dd>Hammer-on to the next note on the string</dd></div>
+        <div><dt>5p</dt><dd>Pull-off to the next note on the string</dd></div>
+        <div><dt>5/</dt><dd>Slide to the next note on the string</dd></div>
+        <div><dt>0h2</dt><dd>Grace note: 0 hammered onto 2 on the beat (<code>0/2</code> slides)</dd></div>
+        <div><dt>5b</dt><dd>Bend up a whole step</dd></div>
+        <div><dt>5~</dt><dd>Vibrato</dd></div>
+        <div><dt>(5)</dt><dd>Ghost note</dd></div>
+        <div><dt>&lt;12&gt;</dt><dd>Natural harmonic</dd></div>
+        <div><dt>5pm</dt><dd>Palm mute</dd></div>
+        <div><dt>5&gt;</dt><dd>Accent</dd></div>
+        <div><dt>5^</dt><dd>Heavy accent</dd></div>
+        <div><dt>5.</dt><dd>Staccato</dd></div>
+      </dl>
+      <p class="hint">Suffixes combine, e.g. <code>7b~</code>.</p>
+    </aside>
+  </div>
 </section>
 
 <script src="/vendor/alphatab/alphaTab.min.js"></script>
@@ -94,6 +133,16 @@
   const soundBytes = name => SOUNDS[name]
     ? fetch(SOUNDS[name]).then(r => r.arrayBuffer()).then(b => new Uint8Array(b))
     : fetch('/vendor/alphatab/soundfont/sonivox.sf2.b64.txt').then(r => r.text()).then(b64 => Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0)));
+  // Mutes play at the softest dynamic so they mostly just stop the string; hammer-on, pull-off and slide targets
+  // aren't picked, so they play at mezzo-piano to blend in (grace-note targets stay full volume).
+  function quietMutes(score) {
+    for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
+      for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {
+        if (note.isDead) note.dynamics = 0;
+        else if ((note.hammerPullOrigin && !note.hammerPullOrigin.beat.graceType) || note.slideOrigin) note.dynamics = 3;
+      }
+  }
+  preview.scoreLoaded.on(quietMutes);
   preview.scoreLoaded.on(function first() { preview.scoreLoaded.off(first); soundBytes(sound).then(bytes => preview.loadSoundFont(bytes, false)); });
   $('sound').addEventListener('change', async () => {
     sound = $('sound').value;
@@ -175,6 +224,15 @@
   }
   api.scoreLoaded.on(() => { if (selected) select(selected.index); });
   api.beatMouseDown.on(beat => select(beat.voice.bar.index));
+  // Shades the selected bar and marks its start, like the playback cursor.
+  function showSelection() {
+    const b = selected && api.boundsLookup?.findMasterBarByIndex(selected.index)?.realBounds;
+    $('sel').hidden = !b;
+    if (!b) return;
+    const tab = $('tab');
+    Object.assign($('sel').style, { left: `${tab.offsetLeft + b.x}px`, top: `${tab.offsetTop + b.y}px`, width: `${b.w}px`, height: `${b.h}px` });
+  }
+  api.renderFinished.on(showSelection);
 
   // Reads one bar of the loaded score into the grid: cells[row][sixteenth] = "fret" or "fret" + "h".
   function select(index) {
@@ -199,6 +257,7 @@
     $('bar-label').textContent = `Bar ${index + 1}`;
     renderGrid(cells);
     $('panel').hidden = false;
+    showSelection();
     status('');
   }
 
@@ -288,14 +347,14 @@
 
   $('save').addEventListener('click', () => {
     const raw = gridToTex();
-    if (raw === null) return status('Fix the red cells: a fret number with optional symbols (see the list above), or x.', true);
+    if (raw === null) return status('Fix the red cells: use a fret number with symbols from the Symbols list, or x.', true);
     change('PUT', { raw });
   });
   $('reset').addEventListener('click', () => change('DELETE'));
   $('play').addEventListener('click', () => {
     if (preview.playerState === 1) return preview.stop();
     const raw = gridToTex();
-    if (raw === null) return status('Fix the red cells: a fret number with optional symbols (see the list above), or x.', true);
+    if (raw === null) return status('Fix the red cells: use a fret number with symbols from the Symbols list, or x.', true);
     const ts = api.score.masterBars[selected.index];
     pendingPlay = true;
     preview.tex(`${header}\\ts (${ts.timeSignatureNumerator} ${ts.timeSignatureDenominator}) ${raw}`);

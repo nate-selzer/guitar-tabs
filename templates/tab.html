@@ -37,11 +37,15 @@
   .facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
   .fact { font: 500 12px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; color: var(--muted); }
   .fact b { color: var(--fg); font-weight: 500; }
-  .boxes { display: grid; grid-template-columns: repeat(9, 1fr); gap: 18px 10px; padding: 28px 28px 8px; color: #1c221f; }
-  @media (max-width: 640px) { .boxes { grid-template-columns: repeat(4, 1fr); padding: 20px 16px 4px; } }
+  /* Every chord box is the same size; the column count adapts to the width (9 per row on desktop). */
+  .boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 18px 10px; padding: 28px 28px 8px; color: #1c221f; }
+  @media (max-width: 640px) { .boxes { padding: 20px 16px 4px; } }
   .boxes figure { margin: 0; display: grid; justify-items: center; gap: 4px; }
-  .boxes figcaption { font: 700 15px var(--mono); color: #2e6a58; }
-  .boxes svg { width: 100%; max-width: 104px; height: auto; }
+  .boxes figcaption { font: 700 13px var(--mono); color: #2e6a58; white-space: nowrap; }
+  .field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font: 600 13px var(--body); }
+  /* Below this width alphaTab packs bars so tightly that lyrics collide; the sheet scrolls sideways instead. */
+  #tab { min-width: 760px; }
+  .boxes svg { width: 84px; height: auto; }
   .note { margin: 0; max-width: 68ch; padding: 10px 14px; border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
   .views { display: flex; gap: 4px; }
   .views a { font: 600 14px var(--body); color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; }
@@ -68,26 +72,28 @@
       __FACTS__
     </div>
   </header>
+  <nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>
 
   __NOTE__
 
-  <nav class="views"><a href="./" aria-current="page">Tab</a><a href="chords.html">Chords</a></nav>
 
   <div class="bar">
     <button id="play" class="primary" disabled>Loading…</button>
     <button id="stop" disabled>Stop</button>
-    <label for="speed" class="status">Speed</label>
-    <select id="speed">
-      <option value="0.5">50%</option>
-      <option value="0.75">75%</option>
-      <option value="1" selected>100%</option>
-    </select>
-    <label for="sound" class="status">Sound</label>
-    <select id="sound" title="Higher-quality soundfonts download when picked">
-      <option value="basic">Basic</option>
-      <option value="gugs">GeneralUser GS (32 MB)</option>
-      <option value="fluid">FluidR3 (24 MB)</option>
-    </select>
+    <label class="field"><span>Speed</span>
+      <select id="speed">
+        <option value="0.5">50%</option>
+        <option value="0.75">75%</option>
+        <option value="1" selected>100%</option>
+      </select>
+    </label>
+    <label class="field"><span>Sound</span>
+      <select id="sound" title="Higher-quality soundfonts download when picked">
+        <option value="basic">Basic</option>
+        <option value="gugs">GeneralUser GS (32 MB)</option>
+        <option value="fluid">FluidR3 (24 MB)</option>
+      </select>
+    </label>
     <span id="status" class="status"></span>
   </div>
 
@@ -191,10 +197,14 @@
       track.events.sort((a, b) => a.tick - b.tick);
     }
   }
-  // Muted (x) notes play at the softest dynamic, so they mostly just stop the string rather than thump.
+  // Mutes play at the softest dynamic so they mostly just stop the string; hammer-on, pull-off and slide targets
+  // aren't picked, so they play at mezzo-piano to blend in (grace-note targets stay full volume).
   function quietMutes(score) {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
-      for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) if (note.isDead) note.dynamics = 0;
+      for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {
+        if (note.isDead) note.dynamics = 0;
+        else if ((note.hammerPullOrigin && !note.hammerPullOrigin.beat.graceType) || note.slideOrigin) note.dynamics = 3;
+      }
   }
   // Playback uses the strummed (brushed) score; the drawn copy drops strum (brush) markers so the tab has no arrows; rolled chords (arpeggios) keep theirs.
   const tex = document.getElementById('tex').textContent.trim();

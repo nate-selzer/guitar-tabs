@@ -36,3 +36,11 @@ Then open http://localhost:8810/editor/?song=<folder> (for example `?song=nothin
 - **Reset to pattern** removes the bar's override.
 
 The editor only works locally (it writes files); the copy on GitHub Pages can't save. Commit and push `overrides.json` with the rebuilt files to publish edits.
+
+## Claude Code skill
+
+`.claude/skills/guitar-tab/SKILL.md` is the recipe Claude Code follows to tab a song in this repo. It loads automatically in sessions started here; to use it everywhere, symlink it into your user skills:
+
+```sh
+ln -s "$PWD/.claude/skills/guitar-tab" ~/.claude/skills/guitar-tab
+```
