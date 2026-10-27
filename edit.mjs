@@ -1,5 +1,4 @@
-// Local editor: `node edit.mjs`, then open http://localhost:8810/editor/?song=<slug>.
-// Serves the repo and saves bar edits to <slug>/overrides.json, rebuilding the song after each change.
+// Local bar editor server (see README): serves the repo and saves edits to <slug>/overrides.json.
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
