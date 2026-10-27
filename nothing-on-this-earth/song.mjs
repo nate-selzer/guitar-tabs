@@ -16,8 +16,7 @@ export default {
   tempo: 80,
   pattern: 'pinch',
   patterns: {
-    // Bass on every beat. Beats 1 and 3: pinch D + B on the "and". Beats 2 and 4: G on the "e", B on the "a".
-    // C7 (end of the "ocean" / "troubles" bars) instead plays G on the "and", D on the "a".
+    // Beats 1/3 pinch D+B on the "and"; beats 2/4 play G on the "e", B on the "a"; C7 plays G, D on the "and", "a".
     pinch: (c, quarters, fx, state, { note, bassStrings }) => {
       const out = [];
       for (let k = 0; k < quarters; k++) {
