@@ -8,6 +8,23 @@ const pick = (chord, notes) => [...notes, ...notes]
   .map((n, i) => `${n.replace(/(\d+\.\d)/g, '$1{lr}')}.16${i === 0 ? ` {ch ${q(chord)}}` : ''}`)
   .join(' ');
 
+// Beats 1/3 pinch D+B on the "and"; beats 2/4 play G, D, B on the "e", "and", "a".
+const pinch = (c, quarters, fx, state, { note, bassStrings }) => {
+  const out = [];
+  for (let k = 0; k < quarters; k++) {
+    const strs = bassStrings(c);
+    const bass = note(c, strs[state.alt++ % strs.length]);
+    const tag = k === 0 && fx ? ` {${fx}}` : '';
+    const [D, G, B] = [note(c, 2), note(c, 3), note(c, 4)];
+    // Cmaj7's B holds through beat 4 (no bass), then C7 plays G, D on the "e", "and".
+    if (c === 'Cmaj7') out.push(`${bass}.16${tag}`, `${G}.16`, `${D}.16`, `${B}.8`);
+    else if (c === 'C7') out.push(`${G}.16${tag}`, `${D}.8`);
+    else if ((state.pos + k) % 2 === 0) out.push(`${bass}.8${tag}`, `(${D} ${B}).8`);
+    else out.push(`${bass}.16${tag}`, `${G}.16`, `${D}.16`, `${B}.16`);
+  }
+  return out;
+};
+
 export default {
   title: 'Nothing on This Earth Can Make Me Smile',
   artist: 'Dougie Poole',
@@ -16,22 +33,12 @@ export default {
   tempo: 80,
   pattern: 'pinch',
   patterns: {
-    // Beats 1/3 pinch D+B on the "and"; beats 2/4 play G, D, B on the "e", "and", "a".
-    pinch: (c, quarters, fx, state, { note, bassStrings }) => {
-      const out = [];
-      for (let k = 0; k < quarters; k++) {
-        const strs = bassStrings(c);
-        const bass = note(c, strs[state.alt++ % strs.length]);
-        const tag = k === 0 && fx ? ` {${fx}}` : '';
-        const [D, G, B] = [note(c, 2), note(c, 3), note(c, 4)];
-        // Cmaj7's B holds through beat 4 (no bass), then C7 plays G, D on the "e", "and".
-        if (c === 'Cmaj7') out.push(`${bass}.16${tag}`, `${G}.16`, `${D}.16`, `${B}.8`);
-        else if (c === 'C7') out.push(`${G}.16${tag}`, `${D}.8`);
-        else if ((state.pos + k) % 2 === 0) out.push(`${bass}.8${tag}`, `(${D} ${B}).8`);
-        else out.push(`${bass}.16${tag}`, `${G}.16`, `${D}.16`, `${B}.16`);
-      }
-      return out;
-    },
+    pinch,
+    // F/G: pinch on 3 "and", G string 0 hammered to 2 from 3 "a" onto beat 4 with the bass, then B, D (held).
+    fgVariation1: (c, quarters, fx, state, h) => c !== 'F/G' ? pinch(c, quarters, fx, state, h) : [
+      `${h.note(c, 0)}.8${fx ? ` {${fx}}` : ''}`, `(${h.note(c, 2)} ${h.note(c, 4)}).16`, '0.3{lr h}.16',
+      `(${h.note(c, 0)} 2.3{lr}).16`, `${h.note(c, 4)}.16`, `${h.note(c, 2)}.8`,
+    ],
   },
   note: '<b>Thumb over the neck.</b> F, F/G, Am6/F#, Am/F# and A♭dim fret the low E string with your thumb wrapped over the top of the neck (marked <b>T</b> in the chord boxes). Your fingers then handle the D, G and B strings. The shapes look impossible as normal fingerings, but they\'re right.',
   chords: {
@@ -82,7 +89,7 @@ export default {
     { beats: [['Am6', 2, 'crooked'], ['Am6/F#', 2, 'pile, and']] },
     { beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
     { beats: [['C', 1, 'smile,'], ['Gadd4/B', 1, 'no,'], ['Am6/F#', 1, 'no'], ['Am6/F#', 1]] },
-    { beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
+    { pattern: 'fgVariation1', beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
     { beats: [['C', 1, 'smile,'], ['Gadd4/B', 1, 'I'], ['Am6/F#', 1, 'told you'], ['Am6/F#', 1]] },
     { beats: [['F', 2, 'nothing on this'], ['F/G', 2, 'earth can make me']] },
     { doubleBar: true, beats: [['C/G', 4, 'smile']] },

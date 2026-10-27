@@ -18,6 +18,9 @@ if (!process.argv[2]) buildHome();
 async function buildSong(slug) {
   const dir = path.join(root, slug);
   const song = (await import(pathToFileURL(path.join(dir, 'song.mjs')).href)).default;
+  // Hand-edited bars from the local editor (edit.mjs), keyed by bar index; they replace the pattern output.
+  const overridesFile = path.join(dir, 'overrides.json');
+  const overrides = fs.existsSync(overridesFile) ? JSON.parse(fs.readFileSync(overridesFile, 'utf8')) : {};
   const tuningPcs = song.tuning && song.tuning.map(n => 'CCDDEFFGGAAB'.indexOf(n[0]) + (n[1] === '#' ? 1 : n[1] === 'b' ? -1 : 0));
 
   // Song shapes first (in their order), then any library chords the song uses.
@@ -97,7 +100,7 @@ async function buildSong(slug) {
       b.ending ? `\\ae (${b.ending})` : '',
       b.repeatEnd ? `\\rc ${b.repeatEnd}` : '',
       b.doubleBar ? '\\db' : '',
-      renderBar(b),
+      overrides[i] ?? renderBar(b),
     ].filter(Boolean).join(' ')).join(' |\n'),
   ].filter(Boolean).join('\n');
 
