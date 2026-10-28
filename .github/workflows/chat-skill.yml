@@ -1,0 +1,23 @@
+# Repacks the Claude chat skill and replaces the zip on the chat-skill release whenever what it carries changes.
+name: Chat skill
+on:
+  push:
+    branches: [main]
+    paths: [build.mjs, chords.mjs, overrides.mjs, apply-edits.mjs, package-skill.mjs, 'templates/**', 'web/**', 'vendor/alphatab/**', '.claude/skills/guitar-tab/**', .github/workflows/chat-skill.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node package-skill.mjs guitar-tab-chat.zip
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view chat-skill >/dev/null 2>&1 || gh release create chat-skill --title "Claude chat skill" --notes "Upload guitar-tab-chat.zip in claude.ai under Skills. Rebuilt from main whenever the build or the skill changes."
+          gh release upload chat-skill guitar-tab-chat.zip --clobber

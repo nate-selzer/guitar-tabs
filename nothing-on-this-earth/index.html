@@ -29,6 +29,7 @@
     --bg: #141917; --fg: #e3e8e4; --muted: #94a19a; --line: #2c3531;
     --accent: #6cbfa3; --accent-fg: #0d1512; --paper: #fbfbf8; color-scheme: dark;
   }
+  [hidden] { display: none !important; }
   body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
   .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 20px; }
   header { display: grid; gap: 6px; }
@@ -215,21 +216,19 @@
 3.5{lr}.16 {ch "C (barre)"} 5.2{lr}.16 5.4{lr}.16 5.2{lr}.16 x.5.16 5.2{lr}.16 5.4{lr}.16 5.2{lr}.16 3.5{lr}.16 5.2{lr}.16 5.4{lr}.16 5.2{lr}.16 x.5.16 5.2{lr}.16 5.4{lr}.16 5.2{lr}.16 |
 5.5{lr}.16 {ch "Ddim7"} 6.2{lr}.16 6.4{lr}.16 6.2{lr}.16 5.5{lr}.16 6.2{lr}.16 6.4{lr}.16 6.2{lr}.16 5.5{lr}.16 6.2{lr}.16 6.4{lr}.16 6.2{lr}.16 5.5{lr}.16 6.2{lr}.16 6.4{lr}.16 6.2{lr}.16 |
 (3.5{lr} 5.4{lr} 0.3{lr} 5.2{lr} 7.1{lr}).1 {ch "Cmaj7 (end)" ad 960}</script>
+<script>window.GT_ASSETS = { base: '../' };</script>
 <script src="../vendor/alphatab/alphaTab.min.js"></script>
+<script src="../web/playback.js"></script>
 <script>
   const el = document.getElementById('tab');
   const playBtn = document.getElementById('play');
   const stopBtn = document.getElementById('stop');
   const status = document.getElementById('status');
   const narrow = matchMedia('(max-width: 640px)').matches;
+  // Only in the chat version of the page: the song's bars, so bar edits can be tried here and copied back to Claude.
+  const EDIT = null;
 
-  const api = new alphaTab.AlphaTabApi(el, {
-    core: {
-      fontDirectory: new URL('../vendor/alphatab/font/', location.href).href,
-      scriptFile: new URL('../vendor/alphatab/alphaTab.min.js', location.href).href,
-      enableLazyLoading: false,
-      useWorkers: false,
-    },
+  const api = GT.newApi(el, {
     display: {
       staveProfile: 'Tab',
       scale: narrow ? 0.8 : 1,
@@ -254,120 +253,33 @@
     },
   });
 
-  // Let-ring sustains up to a bar; cap it so chords don't blur, except the final chord and `free` [start, end) tick ranges.
-  function capRing(midi, maxTicks, free = []) {
-    for (const track of midi.tracks) {
-      const open = new Map();
-      const lastOn = Math.max(...track.events.filter(e => e.type === 128).map(e => e.tick));
-      for (const e of track.events) {
-        const key = `${e.channel}:${e.noteKey}`;
-        // alphaTab's event types: 128 = note on, 144 = note off (class names are minified in the browser build).
-        if (e.type === 128 && e.noteVelocity > 0 && e.tick < lastOn && !free.some(([a, b]) => e.tick >= a && e.tick < b)) open.set(key, e.tick);
-        else if ((e.type === 144 || e.type === 128) && open.has(key)) {
-          e.tick = Math.min(e.tick, open.get(key) + maxTicks);
-          open.delete(key);
-        }
-      }
-      track.events.sort((a, b) => a.tick - b.tick);
-    }
-  }
-  // Seeded variations so playback sounds played, not sequenced: beat accents, volume and timing nudges, spread chords.
-  function humanize(midi) {
-    let seed = 1;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
-    for (const track of midi.tracks) {
-      // Grace notes are short and start off the sixteenth-note grid (240 ticks); find them before shifting anything.
-      const grace = new Set();
-      const started = new Map();
-      for (const e of track.events) {
-        const key = `${e.channel}:${e.noteKey}`;
-        if (e.type === 128 && e.noteVelocity > 0) started.set(key, e);
-        else if ((e.type === 144 || e.type === 128) && started.has(key)) {
-          const on = started.get(key);
-          if (e.tick - on.tick < 200 && on.tick % 240 !== 0) grace.add(on);
-          started.delete(key);
-        }
-      }
-      const shift = new Map();
-      for (const e of track.events) {
-        const key = `${e.channel}:${e.noteKey}`;
-        if (e.type === 128 && e.noteVelocity > 0) {
-          const onBeat = e.tick % 960 === 0;
-          // Already-quiet notes (mutes) stay quiet.
-          const base = grace.has(e) ? 35 : e.noteVelocity < 30 ? e.noteVelocity : e.noteVelocity + (onBeat ? 8 : -6);
-          e.noteVelocity = Math.max(1, Math.min(127, Math.round(base + rand() * 6)));
-          const d = Math.round(rand() * 8);
-          shift.set(key, d);
-          e.tick = Math.max(0, e.tick + d);
-        } else if ((e.type === 144 || e.type === 128) && shift.has(key)) {
-          e.tick = Math.max(0, e.tick + shift.get(key));
-          shift.delete(key);
-        }
-      }
-      track.events.sort((a, b) => a.tick - b.tick);
-    }
-  }
-  // Mutes barely sound; unpicked legato targets play softer, except grace-note targets.
-  function quietMutes(score) {
-    for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
-      for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {
-        if (note.isDead) note.dynamics = 0;
-        else if ((note.hammerPullOrigin && !note.hammerPullOrigin.beat.graceType) || note.slideOrigin) note.dynamics = 3;
-      }
-  }
   // Playback uses the strummed (brushed) score; the drawn copy drops strum (brush) markers so the tab has no arrows; rolled chords (arpeggios) keep theirs.
-  const tex = document.getElementById('tex').textContent.trim();
-  const strummed = new alphaTab.midi.MidiFile();
-  const importer = new alphaTab.importer.AlphaTexImporter();
-  importer.initFromString(tex, api.settings);
-  const strumScore = importer.readScore();
-  quietMutes(strumScore);
-  const generator = new alphaTab.midi.MidiFileGenerator(strumScore, api.settings, new alphaTab.midi.AlphaSynthMidiFileHandler(strummed));
-  generator.generate();
-  const freeRingBars = [59,60,61,62,63,64,65,66];
-  const freeRing = generator.tickLookup.masterBars.filter(m => freeRingBars.includes(m.masterBar.index)).map(m => [m.start, m.end]);
+  const ring = 0.5;
+  const letRingBars = [59,60,61,62,63,64,65,66];
+  let midi;
   api.scoreLoaded.on(score => {
     for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars)
       for (const voice of bar.voices) for (const beat of voice.beats) if (beat.brushType === 1 || beat.brushType === 2) beat.brushType = 0;
   });
-  capRing(strummed, 0.5 * 960, freeRing);
-  humanize(strummed);
-  api.midiLoad.on(midi => { midi.tracks = strummed.tracks; });
-  api.tex(tex);
+  api.midiLoad.on(m => { m.tracks = midi.tracks; });
+  function show(tex) {
+    midi = GT.strummedMidi(tex, api.settings, ring, letRingBars);
+    api.tex(tex);
+  }
+  show(document.getElementById('tex').textContent.trim());
 
   // Basic soundfont by default; the Sound menu downloads a larger one on demand and remembers the pick per browser.
-  const SOUNDS = {
-    gugs: ['../vendor/soundfont-hq/GeneralUser-GS.sf2', 'GeneralUser GS'],
-    fluid: ['../vendor/soundfont-fluid/FluidR3Mono_GM.sf3', 'FluidR3'],
-  };
   const soundSelect = document.getElementById('sound');
-  async function fetchWithProgress(url, label) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const total = Number(res.headers.get('content-length')) || 0;
-    const reader = res.body.getReader();
-    const chunks = [];
-    let loaded = 0;
-    for (let r; !(r = await reader.read()).done;) {
-      chunks.push(r.value);
-      loaded += r.value.length;
-      if (total) status.textContent = `Downloading ${label} ${Math.floor((loaded / total) * 100)}%`;
-    }
-    const bytes = new Uint8Array(loaded);
-    let offset = 0;
-    for (const c of chunks) { bytes.set(c, offset); offset += c.length; }
-    return bytes;
-  }
+  for (const option of [...soundSelect.options]) if (option.value !== 'basic' && !GT.sounds[option.value]) option.remove();
+  soundSelect.closest('.field').hidden = soundSelect.options.length < 2;
   async function loadSound(name) {
     soundSelect.disabled = true;
     try {
-      const bytes = SOUNDS[name]
-        ? await fetchWithProgress(...SOUNDS[name])
-        : Uint8Array.from(atob((await (await fetch('../vendor/alphatab/soundfont/sonivox.sf2.b64.txt')).text()).trim()), c => c.charCodeAt(0));
+      const bytes = await GT.soundBytes(name, text => { status.textContent = text; });
       status.textContent = 'Loading sounds…';
       api.loadSoundFont(bytes, false);
       soundSelect.value = name;
-      try { localStorage.setItem('guitar-tabs:sound', name); } catch {}
+      GT.saveSound(name);
     } catch (e) {
       status.textContent = 'Could not load sounds: ' + e.message;
     } finally {
@@ -375,10 +287,8 @@
     }
   }
   soundSelect.addEventListener('change', () => loadSound(soundSelect.value));
-  let startSound = 'basic';
-  try { startSound = localStorage.getItem('guitar-tabs:sound') || (localStorage.getItem('guitar-tabs:hq') === '1' ? 'gugs' : 'basic'); } catch {}
   status.textContent = 'Loading sounds…';
-  loadSound(SOUNDS[startSound] ? startSound : 'basic');
+  loadSound(GT.savedSound());
 
   api.soundFontLoad.on(e => {
     status.textContent = 'Loading sounds ' + Math.floor((e.loaded / e.total) * 100) + '%';
@@ -399,4 +309,75 @@
   document.getElementById('print').addEventListener('click', () => window.print());
   stopBtn.addEventListener('click', () => api.stop());
   document.getElementById('speed').addEventListener('change', e => { api.playbackSpeed = Number(e.target.value); });
+
+  // Chat page: edits stay in this browser until copied into the chat, where Claude applies them to song.mjs and rebuilds.
+  if (EDIT) {
+    document.querySelector('.views').remove();
+    const key = `guitar-tabs:edits:${EDIT.slug}`;
+    let pending = {};
+    try { pending = JSON.parse(localStorage.getItem(key)) ?? {}; } catch {}
+    // Edits that this build already has are done.
+    for (const [i, tex] of Object.entries(pending)) if (tex === (EDIT.bars[i]?.override ?? null)) delete pending[i];
+    const texWithEdits = () => EDIT.head + '\n' + EDIT.bars.map((b, i) =>
+      [b.head, i in pending ? pending[i] ?? b.pattern : b.override ?? b.pattern].filter(Boolean).join(' ')).join(' |\n');
+    if (Object.keys(pending).length) show(texWithEdits());
+
+    const editBtn = Object.assign(document.createElement('button'), { textContent: 'Edit bars' });
+    editBtn.setAttribute('aria-pressed', 'false');
+    const copyBtn = Object.assign(document.createElement('button'), { className: 'primary' });
+    const copyBox = Object.assign(document.createElement('textarea'), { readOnly: true, hidden: true, rows: 3 });
+    copyBox.setAttribute('aria-label', 'Edits to paste into the chat');
+    copyBox.style.cssText = 'width: 100%; font: 12px var(--mono);';
+    document.getElementById('print').before(editBtn, copyBtn);
+    document.querySelector('.bar').after(copyBox);
+    const changed = () => {
+      try { localStorage.setItem(key, JSON.stringify(pending)); } catch {}
+      const n = Object.keys(pending).length;
+      copyBtn.textContent = `Copy ${n} edit${n === 1 ? '' : 's'} for Claude`;
+      copyBtn.hidden = !n;
+      copyBox.hidden = true;
+    };
+    changed();
+
+    let editing = false;
+    const editor = GT.mountEditor(api, {
+      header: () => EDIT.head + '\n',
+      ringBeats: () => ring,
+      letRingBars: () => letRingBars,
+      enabled: () => editing,
+      saveLabel: 'Keep edit',
+      onSave: (i, raw) => {
+        pending[i] = raw;
+        changed();
+        show(texWithEdits());
+        return 'Kept. Use Copy edits to send your edits to Claude.';
+      },
+      onReset: i => {
+        if (EDIT.bars[i].override) pending[i] = null;
+        else delete pending[i];
+        changed();
+        show(texWithEdits());
+        return 'Back to the song pattern.';
+      },
+    });
+    editBtn.addEventListener('click', () => {
+      editing = !editing;
+      editBtn.setAttribute('aria-pressed', String(editing));
+      editBtn.textContent = editing ? 'Done editing' : 'Edit bars';
+      status.textContent = editing ? 'Click a bar to edit it.' : '';
+      if (!editing) editor.close();
+    });
+    copyBtn.addEventListener('click', async () => {
+      const text = `Apply my bar edits to ${EDIT.slug}:\n${JSON.stringify({ song: EDIT.slug, edits: pending })}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = 'Copied. Paste it into the chat.';
+      } catch {
+        copyBox.value = text;
+        copyBox.hidden = false;
+        copyBox.select();
+        status.textContent = 'Copy the selected text and paste it into the chat.';
+      }
+    });
+  }
 </script>

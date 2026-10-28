@@ -1,9 +1,10 @@
-// Local bar editor server (see README): serves the repo and saves edits to <slug>/overrides.json.
+// Local bar editor server (see README): serves the repo and saves edits into <slug>/song.mjs.
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
+import { updateOverrides } from './overrides.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const TYPES = {
@@ -17,19 +18,15 @@ http.createServer(async (req, res) => {
   if (api) {
     const [, slug, index] = api;
     if (!fs.existsSync(path.join(root, slug, 'song.mjs'))) return send(res, 404, 'No such song');
-    const file = path.join(root, slug, 'overrides.json');
-    const overrides = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
     if (req.method === 'PUT') {
       let body = '';
       for await (const chunk of req) body += chunk;
-      overrides[index] = JSON.parse(body).raw;
+      updateOverrides(path.join(root, slug, 'song.mjs'), { [index]: JSON.parse(body).raw });
     } else if (req.method === 'DELETE') {
-      delete overrides[index];
+      updateOverrides(path.join(root, slug, 'song.mjs'), { [index]: null });
     } else {
       return send(res, 405, 'Use PUT or DELETE');
     }
-    if (Object.keys(overrides).length) fs.writeFileSync(file, JSON.stringify(overrides, null, 2) + '\n');
-    else fs.rmSync(file, { force: true });
     return execFile(process.execPath, [path.join(root, 'build.mjs'), slug], { cwd: root }, (err, stdout, stderr) =>
       send(res, err ? 500 : 200, err ? stderr || err.message : stderr));
   }

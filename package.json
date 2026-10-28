@@ -3,9 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
-  },
-  "dependencies": {
-    "@coderline/alphatab": "1.8.4"
+    "build": "node build.mjs",
+    "edit": "node edit.mjs",
+    "package-skill": "node package-skill.mjs"
   }
 }

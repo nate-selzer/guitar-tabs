@@ -1,5 +1,5 @@
-// Builds every song folder (any directory with a song.mjs) plus the home page. `node build.mjs <slug>` builds one song.
-import * as alphaTab from '@coderline/alphatab';
+// Builds every song folder (any directory with a song.mjs) plus the home page; `<slug>` builds one, and `--chat <dir>` also writes the chat page and song files into <dir>.
+import * as alphaTab from './vendor/alphatab/alphaTab.core.min.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -10,17 +10,19 @@ const q = s => `"${s.replace(/"/g, '\\"')}"`;
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const DURATIONS = { 1: '.4', 2: '.2', 3: '.2 {d}', 4: '.1' };
 
-const slugs = process.argv[2] ? [process.argv[2]] : fs.readdirSync(root).filter(d => fs.existsSync(path.join(root, d, 'song.mjs')));
+const args = process.argv.slice(2);
+const chatDir = args.includes('--chat') ? args.splice(args.indexOf('--chat'), 2)[1] : null;
+const slugs = args[0] ? [args[0]] : fs.readdirSync(root).filter(d => fs.existsSync(path.join(root, d, 'song.mjs')));
 const songs = [];
 for (const slug of slugs) songs.push(await buildSong(slug));
-if (!process.argv[2]) buildHome();
+if (!args[0]) buildHome();
 
 async function buildSong(slug) {
   const dir = path.join(root, slug);
-  const song = (await import(pathToFileURL(path.join(dir, 'song.mjs')).href)).default;
-  // Hand-edited bars from the local editor (edit.mjs), keyed by bar index; they replace the pattern output.
-  const overridesFile = path.join(dir, 'overrides.json');
-  const overrides = fs.existsSync(overridesFile) ? JSON.parse(fs.readFileSync(overridesFile, 'utf8')) : {};
+  const mod = await import(pathToFileURL(path.join(dir, 'song.mjs')).href);
+  const song = mod.default;
+  // Hand-edited bars from the bar editors (see overrides.mjs), keyed by bar index; they replace the pattern output.
+  const overrides = mod.overrides ?? {};
   const tuningPcs = song.tuning && song.tuning.map(n => 'CCDDEFFGGAAB'.indexOf(n[0]) + (n[1] === '#' ? 1 : n[1] === 'b' ? -1 : 0));
 
   // Song shapes first (in their order), then any library chords the song uses.
@@ -83,7 +85,7 @@ async function buildSong(slug) {
   };
 
   const [num, den] = song.time ?? [4, 4];
-  const tex = [
+  const head = [
     `\\title ${q(song.title)}`,
     `\\artist ${q(song.artist)}`,
     `\\tempo ${song.tempo}`,
@@ -93,16 +95,20 @@ async function buildSong(slug) {
     song.tuning ? `\\tuning (${[...song.tuning].reverse().join(' ')})` : '',
     song.capo ? `\\capo ${song.capo}` : '',
     ...Object.keys(shapes).map(chordDef),
-    song.bars.map((b, i) => [
+  ].filter(Boolean).join('\n');
+  const bars = song.bars.map((b, i) => ({
+    head: [
       i === 0 ? `\\ts (${num} ${den})` : '',
       b.ac ? '\\ac' : '',
       b.repeatStart ? '\\ro' : '',
       b.ending ? `\\ae (${b.ending})` : '',
       b.repeatEnd ? `\\rc ${b.repeatEnd}` : '',
       b.doubleBar ? '\\db' : '',
-      overrides[i] ?? renderBar(b),
-    ].filter(Boolean).join(' ')).join(' |\n'),
-  ].filter(Boolean).join('\n');
+    ].filter(Boolean).join(' '),
+    pattern: renderBar(b),
+    override: overrides[i],
+  }));
+  const tex = head + '\n' + bars.map(b => [b.head, b.override ?? b.pattern].filter(Boolean).join(' ')).join(' |\n');
 
   fs.writeFileSync(path.join(dir, 'song.tex'), tex);
   const settings = new alphaTab.Settings();
@@ -125,10 +131,33 @@ async function buildSong(slug) {
     .replace('__DIAGRAMS__', () => diagrams)
     .replace('__FACTS__', () => extra(facts).map(f => `<span class="fact">${f}</span>`).join('\n      '));
 
-  fs.writeFileSync(path.join(dir, 'index.html'), fill('tab.html', f => [...f, `<b>${num}/${den}</b>`, `♩ = <b>${song.tempo}</b>`]).replace('__TEX__', () => tex).replace('__RING__', song.ring ?? 1).replace('__FREE_RING__', JSON.stringify(song.bars.flatMap((b, i) => (b.letRing ? [i] : [])))));
+  const tabPage = (scripts, edit) => fill('tab.html', f => [...f, `<b>${num}/${den}</b>`, `♩ = <b>${song.tempo}</b>`])
+    .replace('__TEX__', () => tex).replace('__RING__', song.ring ?? 1).replace('__FREE_RING__', JSON.stringify(song.bars.flatMap((b, i) => (b.letRing ? [i] : []))))
+    .replace('__EDIT__', () => JSON.stringify(edit).replace(/</g, '\\u003c')).replace('__SCRIPTS__', () => scripts);
+  fs.writeFileSync(path.join(dir, 'index.html'), tabPage([
+    `<script>window.GT_ASSETS = { base: '../' };</script>`,
+    '<script src="../vendor/alphatab/alphaTab.min.js"></script>',
+    '<script src="../web/playback.js"></script>',
+  ].join('\n'), null));
   fs.writeFileSync(path.join(dir, 'chords.html'), fill('chords.html', f => f)
     .replace('__SHEET__', () => song.sheet.map(([name, lines]) => `<section><h2>[${esc(name)}]</h2><pre>${lines.map(renderLine).join('\n')}</pre></section>`).join('')));
   fs.writeFileSync(path.join(dir, 'chords.txt'), plainSheet(song, shapes));
+
+  if (chatDir) {
+    // Chat's preview can't load other files and cuts the page at tag-like text in scripts, so inline everything with `<` before a tag name as \x3c.
+    const read = (p, enc = 'utf8') => fs.readFileSync(path.join(root, p), enc);
+    const script = p => `<script>${read(p).replace(/<(?=\/|!|html|head|body|style|script)/gi, '\\x3c')}</script>`;
+    const page = tabPage([
+      `<script type="text/plain" id="sf">${read('vendor/alphatab/soundfont/sonivox.sf2.b64.txt').trim()}</script>`,
+      `<script>window.GT_ASSETS = { font: 'data:font/woff2;base64,${read('vendor/alphatab/font/Bravura.woff2', 'base64')}' };</script>`,
+      script('vendor/alphatab/alphaTab.min.js'),
+      script('web/playback.js'),
+      script('web/editor.js'),
+    ].join('\n'), { slug, head, bars });
+    fs.mkdirSync(chatDir, { recursive: true });
+    fs.writeFileSync(path.join(chatDir, `${slug}.html`), page);
+    for (const f of [`${song.title}.gp`, 'chords.txt', 'song.mjs']) fs.copyFileSync(path.join(dir, f), path.join(chatDir, f));
+  }
   return { slug, ...song };
 }
 
