@@ -63,7 +63,6 @@
   body:not(.playing) .at-cursor-bar, body:not(.playing) .at-cursor-beat { visibility: hidden; }
   .at-cursor-beat { background: #2e6a58; width: 3px; }
   .at-highlight * { fill: #2e6a58; stroke: #2e6a58; }
-  body.printing #tab { width: 700px; min-width: 0; }
   @media print {
     :root { --bg: #fff; --fg: #1c221f; }
     body { background: #fff; }
@@ -71,7 +70,10 @@
     .wrap { padding-block: 0; }
     .sheet { box-shadow: none; overflow: visible; }
     #tab { min-width: 0; }
-    .boxes, #tab .at-surface > * { break-inside: avoid; }
+    .boxes { break-inside: avoid; }
+    /* alphaTab places each tab row absolutely; put rows back in flow so a page break moves whole rows. */
+    #tab .at-surface { height: auto !important; padding-top: 24px; }
+    #tab .at-surface > div { position: relative !important; top: auto !important; display: block !important; break-inside: avoid; }
   }
 </style>
 
@@ -298,17 +300,7 @@
   api.error.on(e => { status.textContent = 'Could not load: ' + (e?.message || e); });
 
   playBtn.addEventListener('click', () => api.playPause());
-  document.getElementById('print').addEventListener('click', () => { printPending = true; layoutForPrint(true); });
-  // Printing redraws the tab at page width (2 bars per row) so it isn't squeezed, then restores the screen layout.
-  let printPending = false;
-  const layoutForPrint = on => {
-    document.body.classList.toggle('printing', on);
-    Object.assign(api.settings.display, on ? { barsPerRow: 2, scale: 0.9 } : { barsPerRow: narrow ? 2 : 3, scale: narrow ? 0.8 : 1 });
-    api.updateSettings();
-    api.render();
-  };
-  api.renderFinished.on(() => { if (printPending) { printPending = false; window.print(); } });
-  addEventListener('afterprint', () => { if (document.body.classList.contains('printing')) layoutForPrint(false); });
+  document.getElementById('print').addEventListener('click', () => window.print());
   stopBtn.addEventListener('click', () => api.stop());
   document.getElementById('speed').addEventListener('change', e => { api.playbackSpeed = Number(e.target.value); });
 </script>

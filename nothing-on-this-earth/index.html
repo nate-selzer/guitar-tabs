@@ -63,7 +63,6 @@
   body:not(.playing) .at-cursor-bar, body:not(.playing) .at-cursor-beat { visibility: hidden; }
   .at-cursor-beat { background: #2e6a58; width: 3px; }
   .at-highlight * { fill: #2e6a58; stroke: #2e6a58; }
-  body.printing #tab { width: 700px; min-width: 0; }
   @media print {
     :root { --bg: #fff; --fg: #1c221f; }
     body { background: #fff; }
@@ -71,7 +70,10 @@
     .wrap { padding-block: 0; }
     .sheet { box-shadow: none; overflow: visible; }
     #tab { min-width: 0; }
-    .boxes, #tab .at-surface > * { break-inside: avoid; }
+    .boxes { break-inside: avoid; }
+    /* alphaTab places each tab row absolutely; put rows back in flow so a page break moves whole rows. */
+    #tab .at-surface { height: auto !important; padding-top: 24px; }
+    #tab .at-surface > div { position: relative !important; top: auto !important; display: block !important; break-inside: avoid; }
   }
 </style>
 
@@ -153,7 +155,7 @@
 3.5{lr}.8 {ch "C"} (1.2{lr} 2.4{lr}).16 0.5{lr h}.16 2.5{lr}.16 {ch "Gadd4/B"} 0.3{lr}.16 0.4{lr}.16 1.2{lr}.16 2.6{lr}.8 {ch "Am6/F#"} (1.2{lr} 4.4{lr}).8 2.6{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 |
 1.6{lr}.8 {ch "F"} (3.1{lr} 3.4{lr}).8 1.6{lr}.16 0.1{lr}.16 3.4{lr}.8 3.6{lr}.8 {ch "F/G"} (1.2{lr} 3.4{lr}).16 0.3{lr h}.16 (2.3{lr} 3.6{lr}).16 1.2{lr}.16 3.4{lr}.8 |
 \db 3.5{lr}.8 {ch "C/G"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 (2.4{lr} 1.2{lr}).8 3.6{lr}.16 {lyrics 0 "I seen the"} 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 |
-3.5{lr}.8 {ch "C/G" lyrics 0 "1. plague of"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 {ch "Cmaj7/G" lyrics 0 "locusts, the"} (2.4{lr} 0.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 0.2{lr}.16 |
+3.5{lr}.8 {ch "C/G" lyrics 0 "plague of"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 {ch "Cmaj7/G" lyrics 0 "locusts, the"} (2.4{lr} 0.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 0.2{lr}.16 |
 5.5{lr}.8 {ch "Ddim7" lyrics 0 "plague of"} (6.4{lr} 6.2{lr}).8 5.5{lr}.16 4.3{lr}.16 6.4{lr}.16 6.2{lr}.16 3.5{lr}.8 {ch "C (barre)" lyrics 0 "lice, an"} (5.4{lr} 5.2{lr}).8 3.5{lr}.16 5.3{lr}.16 5.4{lr}.16 5.2{lr}.16 |
 3.5{lr}.8 {ch "C (barre)" lyrics 0 "ocean"} (5.4{lr} 5.2{lr}).8 3.5{lr}.16 {lyrics 0 "split right"} 5.3{lr}.16 5.4{lr}.16 5.2{lr}.16 3.5{lr}.16 {ch "Cmaj7" lyrics 0 "down the"} 4.3{lr}.16 5.4{lr}.16 5.2{lr}.8 3.3{lr}.16 {ch "C7" lyrics 0 "middle"} 5.4{lr}.8 |
 0.5{lr}.8 {ch "Am6" lyrics 0 "Ain't that"} (1.2{lr} 4.4{lr}).8 0.5{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 0.6{lr h}.16 {gr} 2.6{lr}.8 {ch "Am6/F#" lyrics 0 "nice, oh honey"} (1.2{lr} 4.4{lr}).8 2.6{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 |
@@ -170,7 +172,7 @@
 3.5{lr}.8 {ch "C"} (1.2{lr} 2.4{lr}).16 0.5{lr h}.16 2.5{lr}.16 {ch "Gadd4/B"} 0.3{lr}.16 0.4{lr}.16 1.2{lr}.16 2.6{lr}.8 {ch "Am6/F#"} (1.2{lr} 4.4{lr}).8 2.6{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 |
 1.6{lr}.8 {ch "F"} (1.2{lr} 3.4{lr}).8 1.6{lr}.16 2.3{lr}.16 3.4{lr}.16 1.2{lr}.16 3.6{lr}.8 {ch "F/G"} (1.2{lr} 3.4{lr}).16 0.3{lr h}.16 (2.3{lr} 3.6{lr}).16 1.2{lr}.16 3.4{lr}.8 |
 \db 3.5{lr}.8 {ch "C/G"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 (2.4{lr} 1.2{lr}).8 3.6{lr}.16 {lyrics 0 "Well it's the"} 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 |
-3.5{lr}.8 {ch "C/G" lyrics 0 "2. sweetest thing"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 {ch "Cmaj7/G" lyrics 0 "that I've"} (2.4{lr} 0.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 0.2{lr}.16 |
+3.5{lr}.8 {ch "C/G" lyrics 0 "sweetest thing"} (2.4{lr} 1.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 1.2{lr}.16 3.5{lr}.8 {ch "Cmaj7/G" lyrics 0 "that I've"} (2.4{lr} 0.2{lr}).8 3.6{lr}.16 0.3{lr}.16 2.4{lr}.16 0.2{lr}.16 |
 5.5{lr}.8 {ch "Ddim7" lyrics 0 "ever"} (6.4{lr} 6.2{lr}).8 5.5{lr}.16 4.3{lr}.16 6.4{lr}.16 6.2{lr}.16 3.5{lr}.8 {ch "C (barre)" lyrics 0 "seen"} (5.4{lr} 5.2{lr}).8 3.5{lr}.16 5.3{lr}.16 5.4{lr}.16 5.2{lr}.16 |
 3.5{lr}.8 {ch "C (barre)" lyrics 0 "A photo-"} (5.4{lr} 5.2{lr}).8 3.5{lr}.16 {lyrics 0 "cake, for"} 5.3{lr}.16 5.4{lr}.16 5.2{lr}.16 3.5{lr}.16 {ch "Cmaj7" lyrics 0 "goodness"} 4.3{lr}.16 5.4{lr}.16 5.2{lr}.8 3.3{lr}.16 {ch "C7" lyrics 0 "sake"} 5.4{lr}.8 |
 0.5{lr}.8 {ch "Am6" lyrics 0 "Devotion iced in"} (1.2{lr} 4.4{lr}).8 0.5{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 0.6{lr h}.16 {gr} 2.6{lr}.8 {ch "Am6/F#" lyrics 0 "green, oh, honey"} (1.2{lr} 4.4{lr}).8 2.6{lr}.16 2.3{lr}.16 4.4{lr}.16 1.2{lr}.16 |
@@ -394,17 +396,7 @@
   api.error.on(e => { status.textContent = 'Could not load: ' + (e?.message || e); });
 
   playBtn.addEventListener('click', () => api.playPause());
-  document.getElementById('print').addEventListener('click', () => { printPending = true; layoutForPrint(true); });
-  // Printing redraws the tab at page width (2 bars per row) so it isn't squeezed, then restores the screen layout.
-  let printPending = false;
-  const layoutForPrint = on => {
-    document.body.classList.toggle('printing', on);
-    Object.assign(api.settings.display, on ? { barsPerRow: 2, scale: 0.9 } : { barsPerRow: narrow ? 2 : 3, scale: narrow ? 0.8 : 1 });
-    api.updateSettings();
-    api.render();
-  };
-  api.renderFinished.on(() => { if (printPending) { printPending = false; window.print(); } });
-  addEventListener('afterprint', () => { if (document.body.classList.contains('printing')) layoutForPrint(false); });
+  document.getElementById('print').addEventListener('click', () => window.print());
   stopBtn.addEventListener('click', () => api.stop());
   document.getElementById('speed').addEventListener('change', e => { api.playbackSpeed = Number(e.target.value); });
 </script>
