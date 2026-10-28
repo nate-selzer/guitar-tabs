@@ -14,10 +14,10 @@ F            1x321x  (thumb on low E)
 F/G          3x321x  (thumb on low E)
 C            x3201x
 Gadd4/B      x2001x
-Em7          0x203x
-Cadd9        x3203x
-Am           x0221x
-Am/F#        2x221x  (thumb on low E)
+Em7          022030
+Cadd9        x32030
+Am           x02210
+Am/F#        2x2210  (thumb on low E)
 Abdim        4x043x  (thumb on low E)
 Cmaj7 (end)  x35057
 

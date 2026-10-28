@@ -1,10 +1,10 @@
-// Local bar editor server (see README): serves the repo and saves edits into <slug>/song.mjs.
+// Local editor server (see README): serves the repo and saves bar and chord chart edits into <slug>/song.mjs.
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
-import { updateOverrides } from './overrides.mjs';
+import { updateEdits } from './overrides.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const TYPES = {
@@ -14,16 +14,18 @@ const TYPES = {
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  const api = url.pathname.match(/^\/api\/([\w-]+)\/bars\/(\d+)$/);
+  const api = url.pathname.match(/^\/api\/([\w-]+)\/(bars|chords)\/(.+)$/);
   if (api) {
-    const [, slug, index] = api;
-    if (!fs.existsSync(path.join(root, slug, 'song.mjs'))) return send(res, 404, 'No such song');
+    const [, slug, kind, key] = api;
+    const file = path.join(root, slug, 'song.mjs');
+    if (!fs.existsSync(file)) return send(res, 404, 'No such song');
+    const name = kind === 'bars' ? 'overrides' : 'chordEdits';
     if (req.method === 'PUT') {
       let body = '';
       for await (const chunk of req) body += chunk;
-      updateOverrides(path.join(root, slug, 'song.mjs'), { [index]: JSON.parse(body).raw });
+      updateEdits(file, name, { [decodeURIComponent(key)]: JSON.parse(body) });
     } else if (req.method === 'DELETE') {
-      updateOverrides(path.join(root, slug, 'song.mjs'), { [index]: null });
+      updateEdits(file, name, { [decodeURIComponent(key)]: null });
     } else {
       return send(res, 405, 'Use PUT or DELETE');
     }

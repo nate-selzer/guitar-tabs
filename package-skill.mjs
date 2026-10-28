@@ -10,7 +10,7 @@ const out = path.resolve(process.argv[2] ?? path.join(os.homedir(), 'Downloads',
 const FILES = [
   'build.mjs', 'chords.mjs', 'overrides.mjs', 'apply-edits.mjs',
   'templates/tab.html', 'templates/chords.html', 'templates/home.html',
-  'web/playback.js', 'web/editor.js',
+  'web/playback.js', 'web/editor.js', 'web/diagram.js', 'web/chart-editor.js',
   'vendor/alphatab/alphaTab.min.js', 'vendor/alphatab/alphaTab.core.min.mjs',
   'vendor/alphatab/font/Bravura.woff2', 'vendor/alphatab/soundfont/sonivox.sf2.b64.txt',
 ];

@@ -127,7 +127,7 @@ __SCRIPTS__
   const stopBtn = document.getElementById('stop');
   const status = document.getElementById('status');
   const narrow = matchMedia('(max-width: 640px)').matches;
-  // Only in the chat version of the page: the song's bars, so bar edits can be tried here and copied back to Claude.
+  // Only in the chat version of the page: the song's bars and chord charts, so edits can be tried here and copied back to Claude.
   const EDIT = __EDIT__;
 
   const api = GT.newApi(el, {
@@ -216,15 +216,31 @@ __SCRIPTS__
   if (EDIT) {
     document.querySelector('.views').remove();
     const key = `guitar-tabs:edits:${EDIT.slug}`;
+    const chartKey = `guitar-tabs:charts:${EDIT.slug}`;
     let pending = {};
-    try { pending = JSON.parse(localStorage.getItem(key)) ?? {}; } catch {}
+    let pendingCharts = {};
+    try { pending = JSON.parse(localStorage.getItem(key)) ?? {}; pendingCharts = JSON.parse(localStorage.getItem(chartKey)) ?? {}; } catch {}
     // Edits that this build already has are done.
     for (const [i, tex] of Object.entries(pending)) if (tex === (EDIT.bars[i]?.override ?? null)) delete pending[i];
+    for (const [name, fields] of Object.entries(pendingCharts)) {
+      const built = EDIT.chords[name];
+      const same = fields === null ? !built?.edited : built?.edited && Object.keys(fields).every(k => JSON.stringify(fields[k]) === JSON.stringify(built.shape[k] ?? null));
+      if (!built || same) delete pendingCharts[name];
+    }
+    const chartOf = name => (name in pendingCharts ? { ...EDIT.chords[name].base, ...pendingCharts[name] } : EDIT.chords[name].shape);
+    const boxes = document.querySelector('.boxes');
+    const drawChart = name => {
+      const fig = boxes.querySelector(`figure[data-chord="${CSS.escape(name)}"]`);
+      const shape = chartOf(name);
+      fig.querySelector('figcaption').textContent = shape.name ?? name;
+      fig.querySelector('svg').outerHTML = chordChart.svg(shape.name ?? name, shape);
+    };
+    for (const name in pendingCharts) drawChart(name);
     const texWithEdits = () => EDIT.head + '\n' + EDIT.bars.map((b, i) =>
       [b.head, i in pending ? pending[i] ?? b.pattern : b.override ?? b.pattern].filter(Boolean).join(' ')).join(' |\n');
     if (Object.keys(pending).length) show(texWithEdits());
 
-    const editBtn = Object.assign(document.createElement('button'), { textContent: 'Edit bars' });
+    const editBtn = Object.assign(document.createElement('button'), { textContent: 'Edit' });
     editBtn.setAttribute('aria-pressed', 'false');
     const copyBtn = Object.assign(document.createElement('button'), { className: 'primary' });
     const copyBox = Object.assign(document.createElement('textarea'), { readOnly: true, hidden: true, rows: 3 });
@@ -233,8 +249,8 @@ __SCRIPTS__
     document.getElementById('print').before(editBtn, copyBtn);
     document.querySelector('.bar').after(copyBox);
     const changed = () => {
-      try { localStorage.setItem(key, JSON.stringify(pending)); } catch {}
-      const n = Object.keys(pending).length;
+      try { localStorage.setItem(key, JSON.stringify(pending)); localStorage.setItem(chartKey, JSON.stringify(pendingCharts)); } catch {}
+      const n = Object.keys(pending).length + Object.keys(pendingCharts).length;
       copyBtn.textContent = `Copy ${n} edit${n === 1 ? '' : 's'} for Claude`;
       copyBtn.hidden = !n;
       copyBox.hidden = true;
@@ -262,15 +278,34 @@ __SCRIPTS__
         return 'Back to the song pattern.';
       },
     });
+    GT.mountChartEditor(boxes, {
+      chart: chartOf,
+      playTex: editor.playTex,
+      saveLabel: 'Keep chart',
+      onSave: (name, fields) => {
+        pendingCharts[name] = fields;
+        changed();
+        drawChart(name);
+        return 'Kept. Fret changes reach the tab once Claude applies your edits.';
+      },
+      onReset: name => {
+        if (EDIT.chords[name].edited) pendingCharts[name] = null;
+        else delete pendingCharts[name];
+        changed();
+        drawChart(name);
+        return 'Back to the song\'s shape.';
+      },
+    });
     editBtn.addEventListener('click', () => {
       editing = !editing;
       editBtn.setAttribute('aria-pressed', String(editing));
-      editBtn.textContent = editing ? 'Done editing' : 'Edit bars';
-      status.textContent = editing ? 'Click a bar to edit it.' : '';
-      if (!editing) editor.close();
+      editBtn.textContent = editing ? 'Done editing' : 'Edit';
+      boxes.toggleAttribute('data-editing', editing);
+      status.textContent = editing ? 'Click a chord chart or a bar to edit it.' : '';
+      if (!editing) { editor.close(); document.dispatchEvent(new CustomEvent('gt-panel')); }
     });
     copyBtn.addEventListener('click', async () => {
-      const text = `Apply my bar edits to ${EDIT.slug}:\n${JSON.stringify({ song: EDIT.slug, edits: pending })}`;
+      const text = `Apply my edits to ${EDIT.slug}:\n${JSON.stringify({ song: EDIT.slug, edits: pending, chords: pendingCharts })}`;
       try {
         await navigator.clipboard.writeText(text);
         status.textContent = 'Copied. Paste it into the chat.';

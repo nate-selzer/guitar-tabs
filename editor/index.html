@@ -5,7 +5,7 @@
 <title>Tab Editor</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-  /* Local bar editor: full tab on top, a fixed panel at the bottom with the selected bar as a string x sixteenth grid */
+  /* Local editor: chord charts and the full tab; clicking either opens its editor in a fixed panel at the bottom */
   :root {
     --bg: #eef0ec; --fg: #1c221f; --muted: #5b6660; --line: #cfd6d0; --accent: #2e6a58; --paper: #fff; --bad: #b3261e;
     --body: "Public Sans", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -16,20 +16,27 @@
   .hint { color: var(--muted); }
   .sheet { background: var(--paper); margin: 0 16px; border-radius: 6px; box-shadow: 0 0 0 1px var(--line); overflow-x: auto; }
   #tab { min-width: 760px; }
+  .boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 18px 10px; padding: 24px 24px 8px; color: #1c221f; }
+  .boxes figure { margin: 0; display: grid; justify-items: center; gap: 4px; }
+  .boxes figcaption { font: 700 13px var(--mono); color: #2e6a58; white-space: nowrap; }
+  .boxes svg { width: 84px; height: auto; }
   #tab .at-cursor-bar { background: rgb(46 106 88 / .12); }
 </style>
 
 <header>
   <h1 id="title">Tab editor</h1>
-  <span class="hint">Click a bar to edit it.</span>
+  <span class="hint">Click a chord chart or a bar to edit it.</span>
 </header>
-<div class="sheet"><div id="tab"></div></div>
+<div class="sheet"><div class="boxes" data-editing></div><div id="tab"></div></div>
 
 <script>window.GT_ASSETS = { base: '../' };</script>
 <script src="../vendor/alphatab/alphaTab.min.js"></script>
 <script src="../web/playback.js"></script>
 <script src="../web/editor.js"></script>
-<script>
+<script src="../web/diagram.js"></script>
+<script src="../web/chart-editor.js"></script>
+<script type="module">
+  import { resolveShapes } from '../chords.mjs';
   const slug = new URLSearchParams(location.search).get('song');
   const api = GT.newApi(document.getElementById('tab'), {
     display: { staveProfile: 'Tab', barsPerRow: innerWidth < 900 ? 2 : 3, justifyLastSystem: true, systemPaddingBottom: 40 },
@@ -37,33 +44,46 @@
   });
   let header = '';
   let song = { bars: [] };
+  let shapes = {};
+  const boxes = document.querySelector('.boxes');
   const editor = GT.mountEditor(api, {
     header: () => header,
     ringBeats: () => song.ring ?? 1,
     letRingBars: () => song.bars.flatMap((b, i) => (b.letRing ? [i] : [])),
     saveLabel: 'Save &amp; rebuild',
-    onSave: (index, raw) => change('PUT', index, { raw }),
-    onReset: index => change('DELETE', index),
+    onSave: (index, raw) => change('PUT', `bars/${index}`, raw),
+    onReset: index => change('DELETE', `bars/${index}`),
     soundMenu: true,
+  });
+  const charts = GT.mountChartEditor(boxes, {
+    chart: name => shapes[name],
+    playTex: editor.playTex,
+    saveLabel: 'Save &amp; rebuild',
+    onSave: (name, fields) => change('PUT', `chords/${encodeURIComponent(name)}`, fields, charts),
+    onReset: name => change('DELETE', `chords/${encodeURIComponent(name)}`, undefined, charts),
   });
 
   async function load() {
     if (!slug) return editor.status('Add ?song=<folder> to the URL.', true);
     const tex = await (await fetch(`../${slug}/song.tex`, { cache: 'no-store' })).text();
     header = tex.slice(0, tex.indexOf('\\ts'));
-    song = (await import(`../${slug}/song.mjs?v=${Date.now()}`)).default;
+    const mod = await import(`../${slug}/song.mjs?v=${Date.now()}`);
+    song = mod.default;
+    shapes = resolveShapes(song, mod.chordEdits);
+    boxes.innerHTML = Object.entries(shapes).map(([name, shape]) => `<figure data-chord="${name.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"><figcaption></figcaption>${chordChart.svg(shape.name ?? name, shape)}</figure>`).join('');
+    for (const fig of boxes.children) fig.firstChild.textContent = shapes[fig.dataset.chord].name ?? fig.dataset.chord;
     document.getElementById('title').textContent = song.title;
     api.tex(tex);
   }
 
-  // edit.mjs writes the bar into song.mjs and rebuilds the song.
-  async function change(method, index, body) {
-    editor.status('Rebuilding…');
-    const res = await fetch(`/api/${slug}/bars/${index}`, { method, body: body && JSON.stringify(body) });
+  // edit.mjs writes the bar or chart into song.mjs and rebuilds the song; build warnings (like chord-name checks) show in the status.
+  async function change(method, path, body, panel = editor) {
+    panel.status('Rebuilding…');
+    const res = await fetch(`/api/${slug}/${path}`, { method, body: body === undefined ? undefined : JSON.stringify(body) });
     const text = await res.text();
     if (!res.ok) throw new Error(text || `Save failed (${res.status})`);
     await load();
-    return method === 'PUT' ? 'Saved.' : 'Reset to the song pattern.';
+    return [method === 'PUT' ? 'Saved.' : 'Reset.', text.trim()].filter(Boolean).join(' ');
   }
   load();
 </script>

@@ -127,16 +127,25 @@ Then open **`http://localhost:8810/editor/?song=<slug>`** in your browser (the s
    - **Reset to pattern** deletes the override for that bar and restores the song's generated pattern.
 5. **Promote recurring figures:** When a hand-edited bar is ready to be reused across multiple verses or sections (or before restructuring a song's bar count), the skill promotes the override out of the `overrides` block into a named template in the song's bars.
 
+#### Editing Chord Charts
+
+Click a chord chart above the tab to edit it by clicking:
+
+- Pick what a click places: **Dot** (no label), a finger (**T 1 2 3 4**), or **Barre**. Click a fret to place a dot; click it again to remove it, or with another finger to relabel it. Click above the chart to switch a string between open and muted.
+- With **Barre**, drag across strings on one fret. Click a barre to remove it, or click it with a finger to label it.
+- **Play chord** strums the chart as drawn, then picks each string. **Name** renames the chart; the tab, chord sheet, UG export and `.gp` file show the new name, while `song.mjs` keeps using the original. **Frets** takes the shape as text (`x 3 2 0 1 0`), **Starting fret** sets the fret at the top of the chart, and **Capo** draws a capo there instead of the nut.
+- **Save & rebuild** writes the chart into a `chordEdits` export at the end of `song.mjs`. Fret changes also change the tab wherever the song's patterns play that chord. **Reset chart** goes back to the song's shape.
+
 ### 3. Using the Skill in Claude Chat
 
 The same workflow runs in a claude.ai chat, with no repo or local server:
 
 Download **[guitar-tab-chat.zip](https://github.com/nate-selzer/guitar-tabs/releases/download/chat-skill/guitar-tab-chat.zip)** (about 1.7 MB) and upload it in claude.ai under Skills, with code execution on. It's rebuilt from `main` whenever the build or the skill changes; `npm run package-skill` makes the same zip locally in `~/Downloads`. Then, in a chat, share a song's chords or attach a `song.mjs`, and Claude builds:
 
-- **A self-contained tab page** that renders right in the chat, with playback (Basic sound only) and a built-in bar editor
+- **A self-contained tab page** that renders right in the chat, with playback (Basic sound only) and built-in bar and chord chart editors
 - **`song.mjs`, `chords.txt`, and the `.gp` file** to download
 
-To fix bars in chat, click **Edit bars** on the page, then click a bar. The grid, symbols, and **Play bar** work as in the local editor. **Keep edit** applies an edit on the page, and **Copy edits for Claude** copies all kept edits to paste into the chat, where Claude writes them into `song.mjs` and rebuilds. Keep the latest `song.mjs` and attach it in your next chat to continue.
+To fix bars or charts in chat, click **Edit** on the page, then click a bar or a chord chart. Both editors work as they do locally. **Keep edit** / **Keep chart** applies a change on the page, and **Copy edits for Claude** copies all kept edits to paste into the chat, where Claude writes them into `song.mjs` and rebuilds (chart fret changes reach the tab then). Keep the latest `song.mjs` and attach it in your next chat to continue.
 
 After changing the build, templates, `web/` scripts, or the skill text, push to `main`, then download and re-upload the new zip.
 
@@ -148,16 +157,16 @@ After changing the build, templates, `web/` scripts, or the skill text, push to 
 npm run build                     # Build all songs and the home index
 node build.mjs <slug>             # Build a single song
 node build.mjs <slug> --chat <dir> # Also write the self-contained chat page and song files into <dir>
-npm run edit                      # Start the local preview & bar editor at http://localhost:8810
+npm run edit                      # Start the local preview & editor at http://localhost:8810
 npm run package-skill             # Pack the Claude chat skill into ~/Downloads/guitar-tab-chat.zip
 ```
 
-- `<slug>/song.mjs` — Source of truth for a song (metadata, chord shapes, patterns, bars, lyric sheet, and any bar edits from the editors)
+- `<slug>/song.mjs` — Source of truth for a song (metadata, chord shapes, patterns, bars, lyric sheet, and any bar and chart edits from the editors)
 - `<slug>/index.html`, `chords.html`, `chords.txt`, `song.tex`, `<Title>.gp` — Generated build outputs
 - `chords.mjs` — Standard open-chord library and music-theory chord-voicing validator
 - `templates/` — Shared HTML/CSS templates for the home page, tab viewer, and chord sheet
-- `web/playback.js` & `web/editor.js` — Browser code shared by the tab viewer, the local editor, and the chat page (alphaTab setup, sounds, playback shaping, the bar editor)
-- `editor/index.html` & `edit.mjs` — Local 16th-note grid bar editor
-- `overrides.mjs` & `apply-edits.mjs` — Write bar edits into a song's `song.mjs`
+- `web/` — Browser code shared by the tab viewer, the local editor, and the chat page (alphaTab setup, sounds, playback shaping, the bar editor, the chord chart renderer and its editor); `build.mjs` uses `web/diagram.js` for the chart SVGs too
+- `editor/index.html` & `edit.mjs` — Local bar and chord chart editor
+- `overrides.mjs` & `apply-edits.mjs` — Write bar and chart edits into a song's `song.mjs`
 - `package-skill.mjs` & `.claude/skills/guitar-tab/` — The Claude Code skill (`SKILL.md`) and the chat skill's instructions (`chat.md`)
 - `vendor/alphatab/` — alphaTab (browser and Node builds), its music font, and the Basic soundfont; no `npm install` needed

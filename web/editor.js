@@ -91,7 +91,7 @@ GT.mountEditor = (api, { header, ringBeats = () => 1, letRingBars = () => [], en
   // Play bar renders the grid's current contents into a hidden one-bar score, so unsaved edits can be heard.
   const previewEl = Object.assign(document.createElement('div'), { style: 'position:absolute; left:-10000px; width:900px' });
   document.body.append(previewEl);
-  const preview = GT.newApi(previewEl, { display: { staveProfile: 'Tab' }, player: { enablePlayer: true, enableCursor: false } });
+  const preview = GT.newApi(previewEl, { display: { staveProfile: 'Tab' }, player: { enablePlayer: true, enableCursor: false, scrollMode: 0 } });
   let sound = GT.savedSound();
   if ($('.sound')) $('.sound').value = sound;
   preview.scoreLoaded.on(GT.quietMutes);
@@ -107,9 +107,10 @@ GT.mountEditor = (api, { header, ringBeats = () => 1, letRingBars = () => [], en
     e.target.disabled = false;
     status('');
   });
-  preview.midiLoad.on(midi => { if (!letRingBars().includes(selected?.index)) GT.capRing(midi, ringBeats() * 960); GT.humanize(midi); });
+  preview.midiLoad.on(midi => { if (!pendingPlay?.ring && !letRingBars().includes(selected?.index)) GT.capRing(midi, ringBeats() * 960); GT.humanize(midi); });
 
   api.scoreLoaded.on(() => { if (selected) select(selected.index); });
+  document.addEventListener('gt-panel', e => { if (e.detail !== panel && !panel.hidden) close(); });
   // Opens on release: a panel opened under the pointer swallows alphaTab's mouseup, and its next render then throws.
   api.beatMouseDown.on(beat => { if (enabled()) addEventListener('mouseup', () => select(beat.voice.bar.index), { once: true }); });
   // Shades the selected bar and marks its start, like the playback cursor.
@@ -140,6 +141,7 @@ GT.mountEditor = (api, { header, ringBeats = () => 1, letRingBars = () => [], en
       for (const k in pendingGrace) delete pendingGrace[k];
       if (beat.chord || beat.lyrics?.some(Boolean)) markers[pos] = { chord: beat.chord?.name, lyrics: beat.lyrics ?? [] };
     }
+    document.dispatchEvent(new CustomEvent('gt-panel', { detail: panel }));
     selected = { index, length, markers };
     if (preview.playerState === 1) preview.stop();
     $('.label').textContent = `Bar ${index + 1}`;
@@ -253,20 +255,25 @@ GT.mountEditor = (api, { header, ringBeats = () => 1, letRingBars = () => [], en
     const raw = gridToTex();
     if (raw === null) return status(BAD_CELLS, true);
     const ts = api.score.masterBars[selected.index];
-    pendingPlay = true;
-    preview.tex(`${header()}\\ts (${ts.timeSignatureNumerator} ${ts.timeSignatureDenominator}) ${raw}`);
+    playTex(`\\ts (${ts.timeSignatureNumerator} ${ts.timeSignatureDenominator}) ${raw}`, { loop: true });
   });
+  // Plays alphaTex bars after the song's header; ring skips the let-ring cap.
+  function playTex(tex, { loop = false, ring = false } = {}) {
+    if (preview.playerState === 1) preview.stop();
+    pendingPlay = { loop, ring };
+    preview.tex(header() + tex);
+  }
   // Registered once up front: adding a midiLoaded handler after a load makes alphaTab 1.8.4 recurse forever.
-  let pendingPlay = false;
+  let pendingPlay = null;
   const playIfPending = () => {
     if (!pendingPlay || !preview.isReadyForPlayback) return;
-    pendingPlay = false;
-    preview.isLooping = true;
+    preview.isLooping = pendingPlay.loop;
+    pendingPlay = null;
     preview.play();
   };
   preview.midiLoaded.on(playIfPending);
   preview.playerReady.on(playIfPending);
   preview.playerStateChanged.on(e => { $('.play').textContent = e.state === 1 ? 'Stop' : 'Play bar'; });
 
-  return { close, status };
+  return { close, status, playTex };
 };

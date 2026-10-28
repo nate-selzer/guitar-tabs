@@ -761,3 +761,11 @@ export default {
     ]
   ],
 };
+
+// Chord chart edits from the chart editor, keyed by chord name; they replace those fields of the chord's shape.
+export const chordEdits = {
+  "Em7": {"frets":[0,2,2,0,3,0],"fingers":[null,null,null,null,null,null],"barres":[],"baseFret":null,"capo":0,"name":null},
+  "Cadd9": {"frets":[null,3,2,0,3,0],"fingers":[null,null,null,null,null,null],"barres":[],"baseFret":null,"capo":0,"name":null},
+  "Am": {"frets":[null,0,2,2,1,0],"fingers":[null,null,null,null,null,null],"barres":[],"baseFret":null,"capo":0,"name":null},
+  "Am/F#": {"frets":[2,null,2,2,1,0],"fingers":["T",null,null,null,null,null],"barres":[],"baseFret":null,"capo":0,"name":null}
+};

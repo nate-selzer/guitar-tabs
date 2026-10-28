@@ -17,7 +17,7 @@ Repo: `~/workspace/guitar-tabs` (public, `nate-selzer/guitar-tabs`, served at ht
 The user's shorthand is usually `| "lyric" Chord Chord |`: bars between pipes, chords in order, words that start each chord.
 
 - **Header:** `title`, `artist`, `tempo`, plus `capo`, `key` (sounding key), `time` (`[3, 4]`), `tuning` (low to high, e.g. `['D2','A2','D3','G3','B3','E4']`) when they apply. `ring` caps how long a note sounds in playback, in beats (default 1). Frets are relative to the capo.
-- **Chords:** define a shape only when the user gives one or it differs from `chords.mjs`. Format is low E to high e, `null` = muted: `'F/G': { frets: [3,null,3,2,1,null], thumb: true, bass: [0] }`. `thumb` marks a low-E note fretted by the thumb (shown as T in the chord box); `bass` lists string indexes the bass alternates through.
+- **Chords:** define a shape only when the user gives one or it differs from `chords.mjs`. Format is low E to high e, `null` = muted: `'F/G': { frets: [3,null,3,2,1,null], thumb: true, bass: [0] }`. `bass` lists string indexes the bass alternates through. Chart-only fields: `fingers` (`'T'` or `'1'`-`'4'` per string, null = none; `thumb: true` is short for T on low E), `barres` (`[{ fret, from, to, finger }]`, string indexes low to high), `baseFret` (fret at the top of the chart; auto by default), `capo` (draws a capo instead of the nut) and `name` (the name shown everywhere, so the key can stay what bars and templates use).
 - **Bars:** `{ beats: [[chord, quarters, lyric], ...] }`; quarters per bar must add up to the time signature. Chord `null` is a rest. Bar flags: `doubleBar`, `pattern`, `letRing` (skip the playback ring cap, e.g. a ringing outro), and `repeatStart`/`repeatEnd`/`ending`/`ac` when repeats fit.
 - **Structure:** write the song out in order, one section after another, ending each section with a `doubleBar`. For a section form that recurs (verse, interlude), write a builder function that returns its bars and takes the lyrics, variations and pickup as arguments. Use repeat signs with stacked lyric columns only when repeated sections are identical apart from lyrics.
 - **Lyric fragments** start at the syllable where the chord changes. Pickup words go on the last beat(s) of the previous bar.
@@ -28,14 +28,14 @@ The user's shorthand is usually `| "lyric" Chord Chord |`: bars between pipes, c
 - **Sheet:** `[sectionName, lines]`; a line is `[[chord|null, 'lyric '], ...]` and a plain string is a note in italics. One section per part, with instrumental parts as chord-only lines plus a note.
 - **Note:** use `note` (HTML) for technique that would make shapes look wrong, e.g. thumb-over chords.
 
-## Bar editor
+## Bar and chart editor
 
-When a figure takes more than one round of text to get right (exact notes, timings, hammer-ons), offer the local editor instead of more description:
+When a figure or chord chart takes more than one round of text to get right (exact notes, timings, hammer-ons, fingerings), offer the local editor instead of more description:
 
 1. Run `node edit.mjs` in the repo (in the background; it also serves the whole site for previewing) and open `http://localhost:8810/editor/?song=<slug>` in the browser pane.
-2. Tell the user: click a bar to select it (it's shaded green with a cursor line) and open its grid (rows = strings, high e on top; columns = sixteenths, labeled 1 e & a); type a fret to add a note and clear a cell to remove it; the Symbols legend beside the grid lists the notation; **Play bar** loops the grid including unsaved edits; **Save & rebuild** writes the bar into the `overrides` export at the end of `<slug>/song.mjs`; **Reset to pattern** removes it.
+2. Tell the user: click a bar to select it (it's shaded green with a cursor line) and open its grid (rows = strings, high e on top; columns = sixteenths, labeled 1 e & a); type a fret to add a note and clear a cell to remove it; the Symbols legend beside the grid lists the notation; **Play bar** loops the grid including unsaved edits; **Save & rebuild** writes the bar into the `overrides` export at the end of `<slug>/song.mjs`; **Reset to pattern** removes it. Click a chord chart to edit it by clicking: pick Dot, a finger (T 1-4) or Barre, click frets to place or remove dots, click above the chart to switch open/muted, drag across strings for a barre; Play chord strums it then picks each string, Name renames it, Starting fret and Capo set the top of the chart. **Save & rebuild** writes it into the `chordEdits` export; fret changes also change the tab where patterns play that chord.
 3. Never type into the user's grid or save over their bars while testing; test with the API or on bars they aren't editing.
-4. Overrides are keyed by bar number, so restructuring a song invalidates them. Before restructuring, move them into the song's bars as named templates and delete the `overrides` block. When an edited figure recurs across sections, do the same.
+4. Overrides are keyed by bar number, so restructuring a song invalidates them. Before restructuring, move them into the song's bars as named templates and delete the `overrides` block. When an edited figure recurs across sections, do the same. `chordEdits` are keyed by chord name; fold them into `chords` when tidying a song.
 
 ## Build and check
 

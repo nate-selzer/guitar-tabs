@@ -70,3 +70,21 @@ export function checkName(name, frets, tuning = STANDARD) {
   if (bassPc !== undefined && lowest !== bassPc) problems.push(`lowest note is ${names[lowest]}, not ${bass}`);
   return problems;
 }
+
+// Each chord's chart: the song's shapes first (in their order), then library chords the song uses; chordEdits from the chart editor replace a shape's fields.
+export function resolveShapes(song, chordEdits = {}) {
+  const used = new Set([
+    ...song.bars.flatMap(b => b.beats.filter(Array.isArray).map(([c]) => c)),
+    ...song.sheet.flatMap(([, lines]) => lines.filter(Array.isArray).flatMap(l => l.map(([c]) => c))),
+  ].filter(Boolean));
+  const shapes = {};
+  for (const [name, s] of Object.entries(song.chords ?? {})) shapes[name] = Array.isArray(s) ? { frets: s } : { ...s };
+  for (const name of used) {
+    if (shapes[name]) continue;
+    if (!library[name]) throw new Error(`${song.title}: no shape for "${name}". Add it to chords in song.mjs.`);
+    shapes[name] = { frets: library[name] };
+  }
+  for (const [name, edit] of Object.entries(chordEdits)) if (shapes[name]) shapes[name] = { ...shapes[name], ...edit };
+  for (const s of Object.values(shapes)) if (s.thumb && s.fingers === undefined) s.fingers = ['T', null, null, null, null, null];
+  return shapes;
+}
